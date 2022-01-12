@@ -1,3 +1,3 @@
 #!/bin/bash
 
-java -jar renaissance-gpl-0.13.0.jar --repetitions 10 --csv out.csv chi-square
+java -jar renaissance-gpl-0.13.0.jar --json results/results.json --repetitions 100 chi-square

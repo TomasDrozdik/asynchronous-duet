@@ -112,8 +112,33 @@ Duet pair i.e. identification of given parallel run can be done via an environme
 Create an alpine image, easier to modify with `docker commit`.
 
 
-## Nov 28 2021
+## Dec 12
 
-Create Graal image.
+* add licence
+    - Apache 2.0
 
+* use docker containers from repos
+    - https://hub.docker.com/r/renaissancebench/buildenv
+
+* extract processing from the docker -> process afterwards
+    - put the resutls in the `duet/results` dir 
+    - this will be later processed by one script like
+        - `./process --one results_dir_A --two results_dir_B`
+
+* rewrite the script in python
+    - add yaml / json config
+    - logging
+
+* random sleep reordering
+
+* does Coremark have absolute values?
+
+* run benchmark + processing
+
+
+## TODO
+
+* Rewrite the processing scripts
+
+* process only single duet at a time
 
