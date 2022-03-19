@@ -19,7 +19,7 @@ debug:
   B:
     image: renaissance
     run: echo RunningB > /duet/results
-    results: # absolute paths
+    results:
       - /duet/results
 
 
