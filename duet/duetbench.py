@@ -10,17 +10,22 @@ import sys
 import traceback
 from typing import List
 
-from duetconfig import BenchmarkConfig, DuetBenchConfig, DuetConfig, DuetRepetititionType
+from duet.duetconfig import (
+    BenchmarkConfig,
+    DuetBenchConfig,
+    DuetConfig,
+    DuetRepetititionType,
+)
 
 
-DOCKER="docker"
+DOCKER = "docker"
 
 
 class Runner:
     def __init__(self, logger):
         self.logger = logger
         self.async_processes_next_id = 0
-        self.async_processes = {} # handle to process mapping
+        self.async_processes = {}  # handle to process mapping
 
     @staticmethod
     def split_cmd(cmd) -> List[str]:
@@ -31,15 +36,21 @@ class Runner:
 
     def run(self, cmd):
         self.logger.debug(f"run> {cmd}")
-        p = subprocess.run(self.split_cmd(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.run(
+            self.split_cmd(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         self.log(p.stdout, p.stderr)
         if p.returncode:
-            raise RuntimeError(f"Running '{cmd}' finished with non-zero exit status {p.returncode}")
+            raise RuntimeError(
+                f"Running '{cmd}' finished with non-zero exit status {p.returncode}"
+            )
 
     def run_async(self, cmd) -> int:
         self.logger.debug(f"run_async({self.async_processes_next_id})> {cmd}")
         try:
-            async_process = subprocess.Popen(self.split_cmd(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            async_process = subprocess.Popen(
+                self.split_cmd(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+            )
         except Exception as e:
             raise RuntimeError(f"Launch of async process '{cmd}' threw exception: {e}")
         async_handle = self.async_processes_next_id
@@ -48,7 +59,7 @@ class Runner:
         return async_handle
 
     def wait_async(self, handle: int):
-        assert(handle in self.async_processes.keys())
+        assert handle in self.async_processes.keys()
         self.logger.debug(f"wait_async({handle})")
 
         p = self.async_processes.pop(handle)
@@ -56,7 +67,9 @@ class Runner:
         returncode = p.wait()
         self.log(stdout, stderr)
         if returncode:
-            raise RuntimeError(f"Running of async task finished with non-zero exit status: {returncode}")
+            raise RuntimeError(
+                f"Running of async task finished with non-zero exit status: {returncode}"
+            )
 
     def log(self, stdout, stderr):
         if stdout:
@@ -81,7 +94,9 @@ class Benchmark:
         self.async_handle = None
 
     def start_instance(self):
-        self.runner.run(f"{DOCKER} run --name {self.config.container} -it -d {self.config.image} bash")
+        self.runner.run(
+            f"{DOCKER} run --name {self.config.container} -it -d {self.config.image} bash"
+        )
 
     def run_async(self):
         split_cmd = f"{DOCKER} exec {self.config.container} bash -c".split()
@@ -89,7 +104,7 @@ class Benchmark:
         self.async_handle = self.runner.run_async(split_cmd)
 
     def wait(self):
-        assert(self.async_handle is not None)
+        assert self.async_handle is not None
         self.runner.wait_async(self.async_handle)
 
     def get_results(self, results_dir, tag):
@@ -99,14 +114,20 @@ class Benchmark:
             filename = os.path.basename(remote_result_path)
             local_tmp_path = f"{results_dir}/{filename}"
             if os.path.exists(local_tmp_path):
-                raise RuntimeError(f"Result name conflict, move of `{remote_result_path}` to `{local_tmp_path}` failed")
+                raise RuntimeError(
+                    f"Result name conflict, move of `{remote_result_path}` to `{local_tmp_path}` failed"
+                )
 
-            self.runner.run(f"{DOCKER} cp {self.config.container}:{remote_result_path} {local_tmp_path}")
+            self.runner.run(
+                f"{DOCKER} cp {self.config.container}:{remote_result_path} {local_tmp_path}"
+            )
 
-            local_result_path = f"{results_dir}/{tag}.{self.config.duet_type.value}.{filename}"
+            local_result_path = (
+                f"{results_dir}/{tag}.{self.config.duet_type.value}.{filename}"
+            )
             os.rename(local_tmp_path, local_result_path)
 
-    def cleanup(self, rm: bool): # nothrow
+    def cleanup(self, rm: bool):  # nothrow
         try:
             self.runner.run(f"{DOCKER} stop {self.config.container}")
         except RuntimeError as e:
@@ -137,18 +158,24 @@ class DuetBenchmark:
         elif self.config.repetitions_type == DuetRepetititionType.SWAP:
             return reverse_order if run_id % 2 else in_order
         else:
-            raise NotImplementedError(f"Unknown repetition type: {self.repetitions_type}")
+            raise NotImplementedError(
+                f"Unknown repetition type: {self.repetitions_type}"
+            )
 
     def run(self):
         self.logger.info("Start duet instances")
         self.a.start_instance()
         self.b.start_instance()
 
-        self.logger.info(f"Run duet: {self.config.name}, type: {self.config.type.value}, repetitions: {self.config.repetitions}, repetitions_type: {self.config.repetitions_type}")
+        self.logger.info(
+            f"Run duet: {self.config.name}, type: {self.config.type.value}, repetitions: {self.config.repetitions}, repetitions_type: {self.config.repetitions_type}"
+        )
 
         for run_id in range(self.config.repetitions):
             run_order = self.get_run_order(run_id)
-            self.logger.info(f"Run - runid: {run_id}, order: {[x.config.container for x in run_order]}")
+            self.logger.info(
+                f"Run - runid: {run_id}, order: {[x.config.container for x in run_order]}"
+            )
             for benchmark in run_order:
                 benchmark.run_async()
 
@@ -161,7 +188,7 @@ class DuetBenchmark:
             self.a.get_results(self.results_dir, tag)
             self.b.get_results(self.results_dir, tag)
 
-    def cleanup(self): #nothrow
+    def cleanup(self):  # nothrow
         self.logger.info("Cleanup")
         self.a.cleanup(self.config.remove_containers)
         self.b.cleanup(self.config.remove_containers)
@@ -173,7 +200,9 @@ def create_results_dir(config: DuetBenchConfig, logger):
     try:
         os.mkdir(results_dir)
     except (OSError, FileExistsError) as e:
-        raise RuntimeError(f"Failed to create results directory `{results_dir}` with exception: {e}")
+        raise RuntimeError(
+            f"Failed to create results directory `{results_dir}` with exception: {e}"
+        )
 
     logger.info(f"Results will be placed in `{results_dir}`")
     return results_dir
@@ -185,7 +214,9 @@ def run_duets(config: DuetBenchConfig, logger):
         logger.info(f"Duet `{duet_config.name}`")
         duet = None
         try:
-            duet = DuetBenchmark(duet_config, results_dir, logging.getLogger(duet_config.name))
+            duet = DuetBenchmark(
+                duet_config, results_dir, logging.getLogger(duet_config.name)
+            )
             duet.run()
         except RuntimeError as e:
             logger.error(f"Duet `{duet_config.name}` failed with exception: {e}")
@@ -197,7 +228,9 @@ def run_duets(config: DuetBenchConfig, logger):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", type=str, help="YAML config file for the duet benchmark")
+    parser.add_argument(
+        "config", type=str, help="YAML config file for the duet benchmark"
+    )
     args = parser.parse_args()
 
     try:

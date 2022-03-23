@@ -31,7 +31,7 @@ weighted.ttest.ci <- function(x, weights, conf.level = 0.95) {
 }
 
 bootstrapped.ci <- function(x, weights, conf.level = 0.95) {
-    
+
 }
 
 if (!("tidyverse" %in% names(sessionInfo()$otherPkgs))) {

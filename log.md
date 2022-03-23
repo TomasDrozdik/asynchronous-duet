@@ -121,7 +121,7 @@ Create an alpine image, easier to modify with `docker commit`.
     - https://hub.docker.com/r/renaissancebench/buildenv
 
 * extract processing from the docker -> process afterwards
-    - put the resutls in the `duet/results` dir 
+    - put the resutls in the `duet/results` dir
     - this will be later processed by one script like
         - `./process --one results_dir_A --two results_dir_B`
 
@@ -141,4 +141,3 @@ Create an alpine image, easier to modify with `docker commit`.
 * Rewrite the processing scripts
 
 * process only single duet at a time
-

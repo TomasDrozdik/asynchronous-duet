@@ -74,4 +74,3 @@ jobs.collect <- function () {
 
     return (res)
 }
-

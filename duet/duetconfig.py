@@ -2,6 +2,7 @@ from typing import List
 import enum
 import yaml
 
+
 class DuetBenchType(enum.Enum):
     AB = "A-B"
     AA = "A-A"
@@ -52,12 +53,16 @@ class DuetConfig:
         self.name = name
         self.config = config
 
-        if DuetType.A.value not in self.config: 
+        if DuetType.A.value not in self.config:
             raise ConfigException(f"Duet `{name}` is missing benchmark config for A")
 
         self.a = BenchmarkConfig(self.name, self.config[DuetType.A.value], DuetType.A)
 
-        b_config = self.config[DuetType.B.value] if self.type == DuetBenchType.AB else self.config[DuetType.A.value]
+        b_config = (
+            self.config[DuetType.B.value]
+            if self.type == DuetBenchType.AB
+            else self.config[DuetType.A.value]
+        )
         self.b = BenchmarkConfig(self.name, b_config, DuetType.B)
 
     @property
@@ -75,7 +80,11 @@ class DuetConfig:
 
     @property
     def type(self) -> DuetBenchType:
-        return DuetBenchType.AB if DuetType.A.value in self.config and DuetType.B.value in self.config else DuetBenchType.AA
+        return (
+            DuetBenchType.AB
+            if DuetType.A.value in self.config and DuetType.B.value in self.config
+            else DuetBenchType.AA
+        )
 
     def __str__(self):
         return str(self.config)
@@ -99,11 +108,15 @@ class DuetBenchConfig:
             with open(config_filename, "r") as config_file:
                 self.config = yaml.safe_load(config_file)
         except Exception as e:
-            raise ConfigException(f"Loading of duet config {config_filename} failed with exception: {e}")
+            raise ConfigException(
+                f"Loading of duet config {config_filename} failed with exception: {e}"
+            )
 
         # Unique duets
         if len(set(self.duet_names)) != len(self.duet_names):
-            raise ConfigException(f"Name clash in duets list: {self.duet_names}")
+            raise ConfigException(
+                f"Name clash in duets list: {self.duet_names}                      "
+            )
 
         # Check presence of duet configs
         missing_configs = []
@@ -115,10 +128,15 @@ class DuetBenchConfig:
 
         # Check existing setup
         setup_name = self.duetbenchconfig.get("setup")
-        if setup_name and not setup_name in self.config:
-            raise ConfigException(f"Specified setup `{setup_name}` is missing its description")
+        if setup_name and setup_name not in self.config:
+            raise ConfigException(
+                f"Specified setup `{setup_name}` is missing its description"
+            )
 
-        self.duets = [DuetConfig(duet_name, self.config[duet_name]) for duet_name in self.duet_names]
+        self.duets = [
+            DuetConfig(duet_name, self.config[duet_name])
+            for duet_name in self.duet_names
+        ]
 
     @property
     def duetbenchconfig(self) -> dict:
@@ -147,7 +165,11 @@ class DuetBenchConfig:
     @property
     def setup(self) -> SetupConfig:
         setup_name = self.duetbenchconfig.get("setup")
-        return SetupConfig(self.name, self.config[setup_name]) if setup_name else SetupConfig(None, None)
+        return (
+            SetupConfig(self.name, self.config[setup_name])
+            if setup_name
+            else SetupConfig(None, None)
+        )
 
     def __str__(self):
         return str(self.config)

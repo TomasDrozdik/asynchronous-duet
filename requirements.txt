@@ -1,0 +1,7 @@
+black
+bokeh
+flake8
+numpy
+pandas
+pytest
+pyyaml
