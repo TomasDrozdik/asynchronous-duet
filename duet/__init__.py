@@ -1,1 +1,1 @@
-__all__ = ["duetbench", "duetconfig", "process-renaissance"]
+__all__ = ["duetbench", "duetconfig", "process_renaissance"]

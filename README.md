@@ -1,40 +1,234 @@
-# Asynchronous Duet Benchmarking - Master Thesis
+# Asynchronous Duet Benchmarking
 
-Goal of this thesis is to create tools for running duet benchmarks with unsynchronized inner harness iterations utilizing docker containers for isolation.
+Tool for running Asynchronous Duet Benchmarks.
+This is "practical part" of a [Master Thesis](https://github.com/TomasDrozdik/asynchronous-duet-thesis).
 
-Thesis work can be split into three parts:
+- [Asynchronous Duet Benchmarking](#asynchronous-duet-benchmarking)
+  - [Build and Benchmark](#build-and-benchmark)
+    - [Build docker image(s)](#build-docker-images)
+    - [Run config](#run-config)
+    - [How `duetbench.py` does it?](#how-duetbenchpy-does-it)
+    - [Install](#install)
+    - [Run asynchronous-duet benchmark!](#run-asynchronous-duet-benchmark)
+  - [Process results](#process-results)
+  - [Interpret results](#interpret-results)
+  - [Development setup](#development-setup)
+    - [Tests](#tests)
 
-1. **Tool for running the benchmarks** defines what is the input and desired output of an asynchronous duet benchmark run.
-    It describes how to incorporate a benchmark of some software into a duet benchmarking procedure to identify performance regression on commit basis.
-    Output should be in standardized format for the next tool to functions.
-    Tool should also provide a procedure of converting any benchmark output in to this standardized output format.
+## Build and Benchmark
 
-2. **Tool for results processing** should process the standardized output and decide whether there is a difference in performance between the two versions.
+Simple guide on how to run asynchronous duet benchmark.
 
-3. **Result analysis and different approaches study**
 
-## Overall plan and progress
+### Build docker image(s)
 
-1. **Part 1**
-    1. [ ] Create POC for running concurrent Renaissance benchmark in A/A duet utilizing 2 Docker containers *- Expected: Nov 07 2021*
-    2. [ ] Identify parameters for actual run *- Expected: mid Nov 2021*
-        - hardware, cloud providers capabilities
-        - benchmarks and versions for A/B runs, their setup, input parameters, output parameters, teardown
-        - resource contention of given benchmark (CPU, Mem, I/O)
-    3. [ ] Create alpha taking required capabilities into considerations *- Expected: end of Nov 2021*
-        - make a test run on identified benchmarks
-        - make A/A and A/B runs with known regressions
-    4. [ ] Run benchmarks on different cloud instances and reference server *- Expected: mid Dec 2021*
+Example: [renaissance docker image](./benchmarks/renaissance/Dockerfile) for [Renaissance suite](https://renaissance.dev/)
 
-2. **Part 2**
-    1. [ ] Study data processing of synchronous duet *- Expected: min Nov 2021*
-    2. [ ] Analyse A/A duets on 1.1 *- Expected: mid Nov 2021*
-    3. [ ] Analyse A/B duets benchmarks from 1.3 *- Expected: Dec-Jan 2021*
-    4. [ ] Explore processing options for data processing *- Expected: Jan 2022*
-    5. [ ] Run the data processing from 2.4 on data from 1.4 *- Expected: Jan-Feb 2022*
+It is built from `openjdk11` image and it downloads renaissance suite jar file.
 
-3. **Part 3**
-    1. [x] Review core papers *- Done: Nov 06 2021*
-    2. [ ] Review related work *- Expected: Nov 14 2021*
-    3. [ ] Analyze different interferences and observe their impact on designed scenarios *- Expected: Jan 2022*
-    4. [ ] Assess viability of 2.3 *- Expected Feb-Mar 2022*
+``` bash
+cd ./benchmarks/renaissance/Dockerfile
+docker build --tag renaissance .
+```
+
+### Run config
+
+For each asynchronous-duet run you need a config file.
+This config file is uniquely tied to docker images it is build for e.g. `renaissance` image above uses `/duet` workdir and config file has to reflect that.
+
+Example: [renaissance duet YAML config](./benchmarks/renaissance/duet.yml)
+
+``` yml
+duetbench:
+  name: renaissance # name of the duet benchmark
+  verbose: true     # debug logging
+  seed: 42          # seed for repetitions
+  duets:            # list of duets to run, these must be top level YAML elements
+    - a-benchmark   # e.g. chi-square is defined as
+
+a-benchmark:
+  remove_containers: true # remove containers after finish
+  repetitions: 2          # number of harness repetitions
+  repetitions_type: swap  # how to interleave harness repetitions, options: random, swap, in_order
+
+  A:                                   # A run
+    image: renaissance                 # docker image to run, must exist on the system
+    run: echo RunningA > /duet/results # command to run the benchmark harness in the container
+    results:                           # list of result files to copy from container after each run
+      - /duet/results                  # has to be absolute paths, in context of renaissance docker
+                                       # image it is its workdir `/duet/`
+
+  B:                                   # B run, optional, if not present does A/A run
+    image: renaissance
+    run: echo RunningB > /duet/results
+    results:
+      - /duet/results
+```
+
+### How `duetbench.py` does it?
+
+In order to write correct run configs it is worth understanding roughly what `duetbench.py` does:
+
+```bash
+# Start containers, in interactive and detaiched mode running bash - that keeps them running
+docker run --name containerA -it -d <image_a> bash
+docker run --name containerB -it -d <image_b> bash
+
+for repetition in <repetitions> ; do
+    # Launch benchmarks in parallel in specified order (random, swap, in_order) and wait
+    docker exec containerA bash -c "<run-command-for-A>" &
+    docker exec containerB bash -c "<run-command-for-B>" &
+    wait
+
+    # Copy each result file
+    docker cp containerA:<result_path> local_host_output_path
+    docker cp containerB:<result_path> local_host_output_path
+done
+
+docker stop containerA
+docker stop containerB
+
+if <remove_containers> ; then
+    docker rm containerA
+    docker rm containerB
+fi
+```
+
+
+### Install
+
+Ideally use python virtual environment
+```
+(venv)$ pip install .[all]
+```
+
+> If using `zsh` shell you need to escape first '[' i.e. `pip install .\[all]`
+
+This should install scripts `duetbench.py` and `process_renaissance.py` as well as dependencies for [`analyze.ipynb`](./duet/analyze.ipynb).
+
+Running:
+```
+(venv)$ duetbench --help # if installed via `pip install .`
+(venv)$ python -m duet.duetbench --help # or this if requirements.txt are installed
+usage: duetbench [-h] config
+
+positional arguments:
+  config      YAML config file for the duet benchmark
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+### Run asynchronous-duet benchmark!
+
+Once you have the tools installed, config read, and docker image built it is as simple as `duetbench <config>` e.g.
+
+```
+(venv)$ duetbench ./benchmarks/renaissance/duet.yml
+```
+
+Logging should give you an idea of what is going on, it also logs all the outputs from the benchmarks themselves so you can examine that as well.
+
+Results will be in output directory of with format like `results.renaissance.20220413-115622` where `renaissance` is the name of the duet from config and it is followed by timestamp.
+
+Results themselves have fixed naming schema `<benchmark_name>.<run_id>.<run_type>.<results_file_from_config>`.
+Example results directory in the repo [`results.renaissance.test\`](./results.renaissance.test/)
+```
+(venv)$ ls -lh results.renaissance.test
+total 48K
+-rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.0.A.results.json
+-rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.0.B.results.json
+-rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.1.A.results.json
+-rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.1.B.results.json
+```
+
+This fixed naming schema is utilized later in processing.
+
+
+## Process results
+
+To compare the A and B benchmarks, first process the raw copied results from the containers.
+Each benchmark suite returns results in its own format.
+To compare them results need to be unified.
+
+**Requirements**: benchmark suite has to give us this information:
+* _wallclock start_ of an inner harness iteration
+* _wallclock end_ of an inner harness iteration
+
+Renaissance suite does not give this to us directly, but it is fairly easy to calculate that.
+For renaissance specifically, there is [`process_renaissance.py`](./duet/process_renaissance.py) that does exactly that given you've installed via pip you already have it available:
+```
+(venv)$ process_renaissance --help
+usage: process_renaissance [-h] -c CONFIG [-o OUTPUT] results
+
+positional arguments:
+  results               Results directory of Renaissance Duet
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Duet config file
+  -o OUTPUT, --output OUTPUT
+                        Output results.csv file, default <results_dir_name>.csv
+```
+
+As you can see it requires config file of that duet and its results directory, it creates single results CSV file.
+For example:
+```
+(venv)$ process_renaissance --config ./benchmarks/renaissance/duet.yml --output results.renaissance.test.csv results.renaissance.test
+Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.0.A.results.json, runid: 0, pair: A, total_iterations: 10
+Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.0.B.results.json, runid: 0, pair: B, total_iterations: 10
+Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.1.A.results.json, runid: 1, pair: A, total_iterations: 10
+Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.1.B.results.json, runid: 1, pair: B, total_iterations: 10
+Apr 13 13:58:43  root                 INFO      Write results to: results.renaissance.test.csv
+```
+
+**Unified Results CSV format**
+
+| Field             | Description                                           |
+| ----------------- | ----------------------------------------------------- |
+| benchmark         | benchmark name                                        |
+| runid             | run number of one A/B duet                            |
+| pair              | type - A or B                                         |
+| epoch_start_ms    | start of the run in wallclock time                    |
+| iteration_time_ns | time per single internall iteration in harness        |
+| machine           | machine this ran on e.g. localhost, EC2 instance name |
+| provider          | provider name e.g. AWS, localhost                     |
+| jdk               | JDK name                                              |
+| jdk_version       | JDK version                                           |
+
+> Some benchmarks might have another "score" metric number e.g. how many things it managed to do instead of just time of iteration, in those cases we might add another field.
+
+
+## Interpret results
+
+Then to interpret the unified results format there is [analyze notebook](./duet/analyze.ipynb).
+There is some sample results data present in [results.renaissance.test](./results.renaissance.test.csv) and the notebook points to it directly.
+
+
+## Development setup
+
+For development you may install all the dependencies directly to your venv.
+This installs python code formatters `black` and `flake8` to which CI enforces compliance. To enable automatic checks localy it also installs `pre-commit` and that enforces, checks, and auto repairs multiple formatting issues described in [`.pre-commit-config.yaml`](./.pre-commit-config.yaml)
+
+
+```
+(venv)$ pip install -r requirements.txt
+(venv)$ pre-commit install # install git hooks
+(venv)$ pre-commit # run all autoformatters
+(venv)$ python -m duet.duetbench
+```
+
+Or you can install the package via pip in editable mode, i.e. binaries would reflect changes made to files. And run from your `$PATH`.
+```
+(venv)$ pip install --editable .[all]
+(venv)$ duetbench --help
+```
+
+### Tests
+
+There are no tests so far :-)
+
+```
+(venv)$ pytest
+```

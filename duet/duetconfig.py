@@ -90,6 +90,7 @@ class DuetConfig:
         return str(self.config)
 
 
+# TODO: this setup may not be required, other option is to gather the data from lscpu and store them directly in results files, it will obtain similar information just automatically without need for config changes
 class SetupConfig:
     def __init__(self, name: str, config: dict):
         self.name = name
@@ -168,7 +169,7 @@ class DuetBenchConfig:
         return (
             SetupConfig(self.name, self.config[setup_name])
             if setup_name
-            else SetupConfig(None, None)
+            else SetupConfig(None, {})
         )
 
     def __str__(self):

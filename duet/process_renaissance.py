@@ -9,7 +9,7 @@ import pandas as pd
 import json
 import logging
 
-from duetconfig import DuetBenchConfig
+from duet.duetconfig import DuetBenchConfig
 
 
 RESULTS_FORMAT = [

@@ -1,0 +1,295 @@
+{
+  "benchmarks": [
+    "chi-square"
+  ],
+  "format_version": 5,
+  "data": {
+    "chi-square": {
+      "results": [
+        {
+          "duration_ns": 9081738837,
+          "uptime_ns": 15289700743
+        },
+        {
+          "duration_ns": 2394048981,
+          "uptime_ns": 24898083611
+        },
+        {
+          "duration_ns": 2662040185,
+          "uptime_ns": 27350623513
+        },
+        {
+          "duration_ns": 2949463436,
+          "uptime_ns": 30403283877
+        },
+        {
+          "duration_ns": 1906221669,
+          "uptime_ns": 33413542943
+        },
+        {
+          "duration_ns": 2307134128,
+          "uptime_ns": 35591336124
+        },
+        {
+          "duration_ns": 2024387299,
+          "uptime_ns": 37990554638
+        },
+        {
+          "duration_ns": 1622775626,
+          "uptime_ns": 40248919128
+        },
+        {
+          "duration_ns": 1759603345,
+          "uptime_ns": 41919744051
+        },
+        {
+          "duration_ns": 1623300203,
+          "uptime_ns": 43977554301
+        }
+      ],
+      "termination": "normal"
+    }
+  },
+  "environment": {
+    "os": {
+      "virt_mem_committed": 9401266176,
+      "name": "Linux",
+      "open_fd_count": 269,
+      "available_processors": 8,
+      "phys_mem_total": 16667975680,
+      "version": "5.10.105-1-MANJARO",
+      "arch": "amd64",
+      "max_fd_count": 1048576,
+      "swap_space_free": 4294963200,
+      "phys_mem_free": 6931251200,
+      "swap_space_total": 4294963200
+    },
+    "vm": {
+      "termination": "normal",
+      "name": "Eclipse OpenJ9 VM",
+      "classloading": {
+        "class_count": 9468,
+        "classes_total": 9516
+      },
+      "mode": "JRE 11 Linux amd64-64-Bit Compressed References 20210421_975 (JIT enabled, AOT enabled)\nOpenJ9   - b4cc246d9\nOMR      - 162e6f729\nJCL      - 7796c80419 based on jdk-11.0.11+9",
+      "args": [
+        "-Xoptionsfile=/opt/jdk-11.0.11+9/lib/options.default",
+        "-Xlockword:mode=default,noLockword=java/lang/String,noLockword=java/util/MapEntry,noLockword=java/util/HashMap$Entry,noLockword=org/apache/harmony/luni/util/ModifiedMap$Entry,noLockword=java/util/Hashtable$Entry,noLockword=java/lang/invoke/MethodType,noLockword=java/lang/invoke/MethodHandle,noLockword=java/lang/invoke/CollectHandle,noLockword=java/lang/invoke/ConstructorHandle,noLockword=java/lang/invoke/ConvertHandle,noLockword=java/lang/invoke/ArgumentConversionHandle,noLockword=java/lang/invoke/AsTypeHandle,noLockword=java/lang/invoke/ExplicitCastHandle,noLockword=java/lang/invoke/FilterReturnHandle,noLockword=java/lang/invoke/DirectHandle,noLockword=java/lang/invoke/ReceiverBoundHandle,noLockword=java/lang/invoke/DynamicInvokerHandle,noLockword=java/lang/invoke/FieldHandle,noLockword=java/lang/invoke/FieldGetterHandle,noLockword=java/lang/invoke/FieldSetterHandle,noLockword=java/lang/invoke/StaticFieldGetterHandle,noLockword=java/lang/invoke/StaticFieldSetterHandle,noLockword=java/lang/invoke/IndirectHandle,noLockword=java/lang/invoke/InterfaceHandle,noLockword=java/lang/invoke/VirtualHandle,noLockword=java/lang/invoke/PrimitiveHandle,noLockword=java/lang/invoke/InvokeExactHandle,noLockword=java/lang/invoke/InvokeGenericHandle,noLockword=java/lang/invoke/VarargsCollectorHandle,noLockword=java/lang/invoke/ThunkTuple",
+        "-Xjcl:jclse29",
+        "-Dcom.ibm.oti.vm.bootstrap.library.path=/opt/jdk-11.0.11+9/lib/default:/opt/jdk-11.0.11+9/lib",
+        "-Dsun.boot.library.path=/opt/jdk-11.0.11+9/lib/default:/opt/jdk-11.0.11+9/lib",
+        "-Djava.library.path=/opt/jdk-11.0.11+9/lib/default:/opt/jdk-11.0.11+9/lib:/usr/lib64:/usr/lib",
+        "-Djava.home=/opt/jdk-11.0.11+9",
+        "-Duser.dir=/duet",
+        "-Djava.class.path=renaissance-gpl-0.13.0.jar",
+        "-Dsun.java.command=renaissance-gpl-0.13.0.jar --json results.json --repetitions 10 chi-square",
+        "-Dsun.java.launcher=SUN_STANDARD",
+        "-Dsun.java.launcher.pid=17"
+      ],
+      "vendor": "Eclipse OpenJ9",
+      "spec_vendor": "Oracle Corporation",
+      "spec_name": "Java Virtual Machine Specification",
+      "compiler": {
+        "name": "j9jit29",
+        "compilation_time_ms": 37131
+      },
+      "start_iso": "2022-03-20T11:16:27.700Z",
+      "collectors": [
+        {
+          "name": "scavenge",
+          "collection_count": 232,
+          "collection_time_ms": 1260
+        },
+        {
+          "name": "global",
+          "collection_count": 25,
+          "collection_time_ms": 2154
+        }
+      ],
+      "start_unix_ms": 1647774987700,
+      "version": "openj9-0.26.0",
+      "pools": [
+        {
+          "name": "class storage",
+          "type": "NON_HEAP",
+          "usage": {
+            "init": 66744312,
+            "used": 53075048,
+            "committed": 112371784,
+            "max": -1
+          },
+          "peak_usage": {
+            "init": 66744312,
+            "used": 53075048,
+            "committed": 112371784,
+            "max": -1
+          }
+        },
+        {
+          "name": "JIT code cache",
+          "type": "NON_HEAP",
+          "usage": {
+            "init": 268435456,
+            "used": 3327328,
+            "committed": 268435456,
+            "max": 268435456
+          },
+          "peak_usage": {
+            "init": 268435456,
+            "used": 3327328,
+            "committed": 268435456,
+            "max": 268435456
+          }
+        },
+        {
+          "name": "tenured-LOA",
+          "type": "HEAP",
+          "usage": {
+            "init": 315392,
+            "used": 0,
+            "committed": 2496512,
+            "max": 41653248
+          },
+          "peak_usage": {
+            "init": 315392,
+            "used": 24144,
+            "committed": 433152,
+            "max": 208244736
+          }
+        },
+        {
+          "name": "nursery-survivor",
+          "type": "HEAP",
+          "usage": {
+            "init": 1048576,
+            "used": 23920640,
+            "committed": 23920640,
+            "max": 104219648
+          },
+          "peak_usage": {
+            "init": 1048576,
+            "used": 24510464,
+            "committed": 24510464,
+            "max": 104553472
+          }
+        },
+        {
+          "name": "JIT data cache",
+          "type": "NON_HEAP",
+          "usage": {
+            "init": 0,
+            "used": 8397640,
+            "committed": 10485760,
+            "max": 402653184
+          },
+          "peak_usage": {
+            "init": 0,
+            "used": 8397640,
+            "committed": 10485760,
+            "max": 402653184
+          }
+        },
+        {
+          "name": "tenured-SOA",
+          "type": "HEAP",
+          "usage": {
+            "init": 5976064,
+            "used": 173541384,
+            "committed": 247130112,
+            "max": 4123225088
+          },
+          "peak_usage": {
+            "init": 5976064,
+            "used": 174557608,
+            "committed": 247130112,
+            "max": 4123225088
+          }
+        },
+        {
+          "name": "nursery-allocate",
+          "type": "HEAP",
+          "usage": {
+            "init": 1048576,
+            "used": 167897920,
+            "committed": 215154688,
+            "max": 937409536
+          },
+          "peak_usage": {
+            "init": 1048576,
+            "used": 219742208,
+            "committed": 219742208,
+            "max": 937355264
+          }
+        },
+        {
+          "name": "miscellaneous non-heap storage",
+          "type": "NON_HEAP",
+          "usage": {
+            "init": 79233020,
+            "used": 25088396,
+            "committed": 124321788,
+            "max": -1
+          },
+          "peak_usage": {
+            "init": 79233020,
+            "used": 118115028,
+            "committed": 190382076,
+            "max": -1
+          }
+        }
+      ],
+      "uptime_ms": 45681,
+      "compressed_oops_mode": null,
+      "threads": {
+        "thread_count": 43,
+        "thread_count_max": 243,
+        "daemon_thread_count": 42,
+        "threads_total": 263
+      },
+      "spec_version": "11",
+      "memory": {
+        "heap_usage": {
+          "init": 8388608,
+          "used": 365358608,
+          "committed": 488701952,
+          "max": 4166975488
+        },
+        "nonheap_usage": {
+          "init": 414412788,
+          "used": 89245288,
+          "committed": 515612476,
+          "max": -1
+        },
+        "pending_finalization_count": 0
+      }
+    },
+    "jre": {
+      "java_version": "11.0.11",
+      "name": "OpenJDK Runtime Environment",
+      "class_path": [
+        "renaissance-gpl-0.13.0.jar"
+      ],
+      "spec_version": "11",
+      "spec_vendor": "Oracle Corporation",
+      "spec_name": "Java Platform API Specification",
+      "home": "/opt/jdk-11.0.11+9",
+      "version": "11.0.11+9",
+      "java_vendor": "AdoptOpenJDK",
+      "library_path": [
+        "/opt/jdk-11.0.11+9/lib/default",
+        "/opt/jdk-11.0.11+9/lib",
+        "/usr/lib64",
+        "/usr/lib"
+      ]
+    }
+  },
+  "suite": {
+    "git": {
+      "commit_hash": "e3c0a0ad4d70494a7ed3051f5c118199bd56f0da",
+      "commit_date": "2021-09-16T11:03:57+0200",
+      "dirty": "false"
+    },
+    "name": "Renaissance Benchmark Suite",
+    "version": "0.13.0"
+  }
+}
