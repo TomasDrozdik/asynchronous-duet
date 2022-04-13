@@ -41,4 +41,3 @@ make.plot <- function(filename, xx, plot_extras=NULL) {
 make.plot(sub("XXXX", "all.zoomed", argv[2]), xx, coord_cartesian(xlim=c(0.2, 1.15)))
 #make.plot(sub("XXXX", "all.zoomed", argv[2]), xx, coord_cartesian(xlim=c(-0.7, 0.7)))
 make.plot(sub("XXXX", "all.full", argv[2]), xx)
-

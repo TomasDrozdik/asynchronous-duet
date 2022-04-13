@@ -29,26 +29,26 @@ compute.one.fragment <- function(x.ones, x.twos) {
         i.start <- i.row$start_time[1]
         i.end <- i.row$end_time[1]
         i.run_id <- i.row$run_id[1]
-        
+
         # We can safely assume that provider is part of run_id
         others <- x.twos %>%
             filter(benchmark == i.row$benchmark[1]) %>%
             filter(run_id == i.row$run_id[1]) %>%
             filter((start_time >= i.start & start_time <= i.end) | (i.start >= start_time & i.start <= end_time))
-    
+
         if (nrow(others) > 0) {
             i.weights <- c()
             i.ratios <- c()
-    
+
             for (j in 1:nrow(others)) {
                 j.row <- others[j,]
                 ij.weight <- get.overlap.length(i.start, i.end, j.row$start_time, j.row$end_time)
                 ij.ratio <- log((i.end - i.start) / (j.row$end_time - j.row$start_time))
-    
+
                 i.weights <- c(i.weights, ij.weight)
                 i.ratios <- c(i.ratios, ij.ratio)
             }
-            
+
             ratios <- ratios %>%
                 add_row(
                     weight=i.weights,
@@ -65,7 +65,7 @@ compute.one.fragment <- function(x.ones, x.twos) {
                 )
         }
     }
-    
+
     ratios
 }
 
