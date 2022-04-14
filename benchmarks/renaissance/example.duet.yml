@@ -3,6 +3,7 @@ duetbench:
   verbose: true
   seed: 42
   duets:
+    - debug
     - chi-square
 
 debug:
