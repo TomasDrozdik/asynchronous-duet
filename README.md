@@ -36,15 +36,16 @@ docker build --tag renaissance .
 For each asynchronous-duet run you need a config file.
 This config file is uniquely tied to docker images it is build for e.g. `renaissance` image above uses `/duet` workdir and config file has to reflect that.
 
-Example: [renaissance duet YAML config](./benchmarks/renaissance/duet.yml)
+Example: [renaissance duet YAML config](./benchmarks/renaissance/renaissance.duet.yml)
 
 ``` yml
 duetbench:
-  name: renaissance # name of the duet benchmark
-  verbose: true     # debug logging
-  seed: 42          # seed for repetitions
-  duets:            # list of duets to run, these must be top level YAML elements
-    - a-benchmark   # e.g. chi-square is defined as
+  name: renaissance      # name of the duet benchmark
+  verbose: true          # debug logging
+  seed: 42               # seed for repetitions
+  docker_command: podman # command to invoke docker in shell, default is docker
+  duets:                 # list of duets to run, these must be top level YAML elements
+    - a-benchmark        # e.g. chi-square is defined as
 
 a-benchmark:
   remove_containers: true # remove containers after finish
