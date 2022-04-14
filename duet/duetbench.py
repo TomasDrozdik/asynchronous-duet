@@ -168,25 +168,50 @@ class DuetBenchmark:
         self.b.start_instance()
 
         self.logger.info(
-            f"Run duet: {self.config.name}, type: {self.config.type.value}, repetitions: {self.config.repetitions}, repetitions_type: {self.config.repetitions_type}"
+            f"Run duet: {self.config.name}, type: {self.config.type.value}, "
+            f"repetitions: {self.config.repetitions}, "
+            f"repetitions_type: {self.config.repetitions_type}"
         )
 
+        if self.config.repetitions <= 0:
+            raise RuntimeWarning(
+                f"Duet `{self.config.name}`,"
+                f"has invalid number of repetitions {self.config.repetitions}"
+            )
+
+        repetition_duration = []
         for run_id in range(self.config.repetitions):
             run_order = self.get_run_order(run_id)
             self.logger.info(
                 f"Run - runid: {run_id}, order: {[x.config.container for x in run_order]}"
             )
+            start = datetime.datetime.now()
             for benchmark in run_order:
                 benchmark.run_async()
 
             self.logger.info(f"Wait - runid: {run_id}")
             self.a.wait()
             self.b.wait()
+            end = datetime.datetime.now()
+            repetition_duration.append(end - start)
 
             self.logger.info(f"Get results - runid: {run_id}")
             tag = f"{self.config.name}.{run_id}"
             self.a.get_results(self.results_dir, tag)
             self.b.get_results(self.results_dir, tag)
+
+        total_run_time = sum(repetition_duration, datetime.timedelta()).total_seconds()
+        average_run_time = total_run_time / len(repetition_duration)
+
+        self.logger.info(
+            f"Finish duet: {self.config.name}, "
+            f"total run time: {datetime.timedelta(seconds=total_run_time)}, "
+            f"averave run time: {datetime.timedelta(seconds=average_run_time)}, "
+            f"max run time: {max(repetition_duration)}"
+        )
+        self.logger.debug(
+            f"Finish duet run times: {[str(time) for time in repetition_duration]}"
+        )
 
     def cleanup(self):  # nothrow
         self.logger.info("Cleanup")
@@ -220,6 +245,14 @@ def run_duets(config: DuetBenchConfig, logger):
             duet.run()
         except RuntimeError as e:
             logger.error(f"Duet `{duet_config.name}` failed with exception: {e}")
+            traceback.print_exception(e)
+        except RuntimeWarning as e:
+            logger.warning(f"Duet `{duet_config.name}` issued warning: {e}")
+            traceback.print_exception(e)
+        except Exception as e:
+            logging.critical(
+                f"Duet `{duet_config.name}`failed with unexpected expception: {e}"
+            )
             traceback.print_exception(e)
         finally:
             if duet:
