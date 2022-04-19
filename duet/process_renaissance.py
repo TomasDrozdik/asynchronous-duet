@@ -165,7 +165,7 @@ def main():
         results_df = process_renaissance(args.results, config)
     except Exception as e:
         logging.critical(f"Process renaissance failed with exception: {e}")
-        traceback.print_exception(e)
+        traceback.print_exc()
         sys.exit(1)
 
     out_csv = args.output if args.output else f"{os.path.basename(args.results)}.csv"

@@ -109,7 +109,7 @@ class Benchmark:
 
     def get_results(self, results_dir, tag):
         for remote_result_path in self.config.result_files:
-            # Since docker cp cannot rename the file (remove_result_path), we first copy the file
+            # Since docker cp cannot rename the file (remote_result_path), we first copy the file
             # (local_tmp_path) and then rename it (local_result_path).
             filename = os.path.basename(remote_result_path)
             local_tmp_path = f"{results_dir}/{filename}"
@@ -245,15 +245,15 @@ def run_duets(config: DuetBenchConfig, logger):
             duet.run()
         except RuntimeError as e:
             logger.error(f"Duet `{duet_config.name}` failed with exception: {e}")
-            traceback.print_exception(e)
+            traceback.print_exc()
         except RuntimeWarning as e:
             logger.warning(f"Duet `{duet_config.name}` issued warning: {e}")
-            traceback.print_exception(e)
+            traceback.print_exc()
         except Exception as e:
             logging.critical(
                 f"Duet `{duet_config.name}`failed with unexpected expception: {e}"
             )
-            traceback.print_exception(e)
+            traceback.print_exc()
         finally:
             if duet:
                 duet.cleanup()
@@ -270,7 +270,7 @@ def main():
         config = DuetBenchConfig(args.config)
     except Exception as e:
         logging.critical(f"Critical config error: {e}")
-        traceback.print_exception(e)
+        traceback.print_exc()
         sys.exit(1)
 
     logging.basicConfig(
@@ -294,7 +294,7 @@ def main():
         run_duets(config, logger)
     except RuntimeError as e:
         logging.critical(f"Critical run error: {e}")
-        traceback.print_exception(e)
+        traceback.print_exc()
         sys.exit(1)
 
 
