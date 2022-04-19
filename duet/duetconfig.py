@@ -26,85 +26,84 @@ class ConfigException(Exception):
 class BenchmarkConfig:
     def __init__(self, duetname: str, config: dict, duet_type: DuetType):
         self.duetname = duetname
+
         self.config = config
+
         self.duet_type = duet_type
 
         self.container = f"{duetname}.{duet_type.value}"
-        # TODO: possibly check for existing images
 
-    @property
-    def image(self) -> str:
-        return self.config["image"]
+        self.image: str = config["image"]
 
-    @property
-    def run_command(self) -> str:
-        return self.config["run"]
+        self.run_command: str = config["run"]
 
-    @property
-    def result_files(self) -> List[str]:
-        return self.config["results"]
+        self.result_files: List[str] = config["results"]
 
     def __str__(self):
-        return str(self.config)
+        return str(vars(self))
 
 
 class DuetConfig:
     def __init__(self, name: str, config: dict):
         self.name = name
+
         self.config = config
 
-        if DuetType.A.value not in self.config:
-            raise ConfigException(f"Duet `{name}` is missing benchmark config for A")
+        self.remove_containers: bool = config["remove_containers"]
 
-        self.a = BenchmarkConfig(self.name, self.config[DuetType.A.value], DuetType.A)
+        self.repetitions: int = config["repetitions"]
 
-        b_config = (
-            self.config[DuetType.B.value]
-            if self.type == DuetBenchType.AB
-            else self.config[DuetType.A.value]
+        self.repetitions_type = DuetRepetititionType(
+            config.get("repetitions_type", "swap")
         )
-        self.b = BenchmarkConfig(self.name, b_config, DuetType.B)
 
-    @property
-    def remove_containers(self) -> bool:
-        return self.config["remove_containers"]
-
-    @property
-    def repetitions(self) -> int:
-        return self.config["repetitions"]
-
-    @property
-    def repetitions_type(self) -> DuetRepetititionType:
-        str_type = self.config.get("repetitions_type", "swap")
-        return DuetRepetititionType(str_type)
-
-    @property
-    def type(self) -> DuetBenchType:
-        return (
+        self.type: DuetBenchType = (
             DuetBenchType.AB
             if DuetType.A.value in self.config and DuetType.B.value in self.config
             else DuetBenchType.AA
         )
 
+        if DuetType.A.value not in config:
+            raise ConfigException(f"Duet `{name}` is missing benchmark config for A")
+
+        self.a = BenchmarkConfig(self.name, config[DuetType.A.value], DuetType.A)
+
+        b_config = (
+            config[DuetType.B.value]
+            if self.type == DuetBenchType.AB
+            else config[DuetType.A.value]
+        )
+        self.b = BenchmarkConfig(self.name, b_config, DuetType.B)
+
     def __str__(self):
-        return str(self.config)
+        return str(vars(self))
 
 
 # TODO: this setup may not be required, other option is to gather the data from lscpu and store them directly in results files, it will obtain similar information just automatically without need for config changes
-class SetupConfig:
-    def __init__(self, name: str, config: dict):
-        self.name = name
-        self.config = config
-
-        self.machine = config.get("machine")
-        self.provider = config.get("provider")
-
-    def __str__(self):
-        return str(self.config)
-
-
 class DuetBenchConfig:
     def __init__(self, config_filename):
+        self.load_config(config_filename)
+
+        self.duetbenchconfig: dict = self.config["duetbench"]
+
+        self.name: str = self.duetbenchconfig["name"]
+
+        self.verbose: bool = self.duetbenchconfig.get("verbose")
+
+        self.seed: int = self.duetbenchconfig.get("seed")
+
+        self.docker_command: str = self.duetbenchconfig.get("docker_command")
+
+        self.duet_names: List[str] = self.duetbenchconfig["duets"]
+
+        self.duets = [
+            DuetConfig(duet_name, self.config[duet_name])
+            for duet_name in self.duet_names
+        ]
+
+        self.check()
+
+    def load_config(self, config_filename: str):
         try:
             with open(config_filename, "r") as config_file:
                 self.config = yaml.safe_load(config_file)
@@ -113,6 +112,7 @@ class DuetBenchConfig:
                 f"Loading of duet config {config_filename} failed with exception: {e}"
             )
 
+    def check(self):
         # Unique duets
         if len(set(self.duet_names)) != len(self.duet_names):
             raise ConfigException(
@@ -127,50 +127,5 @@ class DuetBenchConfig:
         if missing_configs:
             raise ConfigException(f"Missing configs for duets: {missing_configs}")
 
-        # Check existing setup
-        setup_name = self.duetbenchconfig.get("setup")
-        if setup_name and setup_name not in self.config:
-            raise ConfigException(
-                f"Specified setup `{setup_name}` is missing its description"
-            )
-
-        self.duets = [
-            DuetConfig(duet_name, self.config[duet_name])
-            for duet_name in self.duet_names
-        ]
-
-    @property
-    def duetbenchconfig(self) -> dict:
-        return self.config["duetbench"]
-
-    @property
-    def name(self) -> str:
-        return self.duetbenchconfig["name"]
-
-    @property
-    def verbose(self) -> bool:
-        return self.duetbenchconfig.get("verbose", False)
-
-    @property
-    def seed(self) -> int:
-        return self.duetbenchconfig.get("seed")
-
-    @property
-    def docker_command(self) -> str:
-        return self.duetbenchconfig.get("docker_command")
-
-    @property
-    def duet_names(self) -> List[str]:
-        return self.duetbenchconfig["duets"]
-
-    @property
-    def setup(self) -> SetupConfig:
-        setup_name = self.duetbenchconfig.get("setup")
-        return (
-            SetupConfig(self.name, self.config[setup_name])
-            if setup_name
-            else SetupConfig(None, {})
-        )
-
     def __str__(self):
-        return str(self.config)
+        return str(vars(self))

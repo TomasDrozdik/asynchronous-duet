@@ -9,8 +9,7 @@ import pandas as pd
 import json
 import logging
 
-from duet.duetconfig import DuetBenchConfig
-
+# from duet.duetconfig import DuetBenchConfig
 
 RESULTS_FORMAT = [
     "benchmark",
@@ -38,21 +37,11 @@ class RenaissanceResult:
         r"(?P<duet_name>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<duet_type>[AB])\.results.json"
     )
 
-    def __init__(self, result_path: os.path, config: str):
+    def __init__(self, result_path: str, duet_name: str, pair: str, runid: str):
         self.result_path = result_path
-        self.result_filename = os.path.basename(result_path)
-
-        match = self.FILENAME_REGEX.match(self.result_filename)
-        if not match:
-            logging.warning(
-                f"Failed to match `{self.result_path}` with `{self.FILENAME_REGEX}`"
-            )
-
-        self.duet_name = match.group("duet_name")
-        self.pair = match.group("duet_type")
-        self.runid = match.group("runid")
-
-        self.config = config
+        self.duet_name = duet_name
+        self.pair = pair
+        self.runid = runid
 
     def convert_results_json(self) -> pd.DataFrame:
         with open(self.result_path) as json_file:
@@ -78,10 +67,10 @@ class RenaissanceResult:
                         "iteration": iteration,
                         "epoch_start_ms": vm_start_ms,
                         "iteration_time_ns": iteration_data["duration_ns"],
-                        "machine": self.config.setup.machine,
-                        "provider": self.config.setup.provider,
                         "jdk": results_json["environment"]["jre"]["name"],
                         "jdk_version": results_json["environment"]["jre"]["version"],
+                        # "machine":
+                        # "provider":
                         # TODO: Dunno what to put in following fields
                         # "wallclock_start_ms": vm_start_ms,
                         # "time": results_json["environment"]["vm"]["start_iso"],
@@ -120,11 +109,27 @@ class RenaissanceResult:
         return self.convert_results_json()
 
 
-def process_renaissance(results_dir: os.path, config: DuetBenchConfig) -> pd.DataFrame:
-    renaissance_results = [
-        RenaissanceResult(os.path.join(results_dir, file), config)
-        for file in os.listdir(results_dir)
-    ]
+def parse_renaissance_result(result_path: str) -> RenaissanceResult:
+    result_filename = os.path.basename(result_path)
+
+    match = RenaissanceResult.FILENAME_REGEX.match(result_filename)
+    if match:
+        return RenaissanceResult(
+            result_path,
+            match.group("duet_name"),
+            match.group("duet_type"),
+            match.group("runid"),
+        )
+    else:
+        logging.warning(f"Failed to match `{result_path}`")
+
+
+def process_renaissance(results_dir: os.path) -> pd.DataFrame:
+    renaissance_results = []
+    for file in os.listdir(results_dir):
+        result = parse_renaissance_result(f"{results_dir}/{file}")
+        if result:
+            renaissance_results.append(result)
 
     result = pd.DataFrame()
     for renaissance_result in renaissance_results:
@@ -138,22 +143,23 @@ def main():
         "results", type=str, help="Results directory of Renaissance Duet"
     )
     parser.add_argument(
-        "-c", "--config", type=str, required=True, help="Duet config file"
-    )
-    parser.add_argument(
         "-o",
         "--output",
         type=str,
         help="Output results.csv file, default <results_dir_name>.csv",
     )
+    # For now deprecated parameter config
+    # jparser.add_argument("-c", "--config", type=str, help="Duet config file")
     args = parser.parse_args()
 
-    try:
-        config = DuetBenchConfig(args.config)
-    except Exception as e:
-        logging.critical(f"Critical config error: {e}")
-        traceback.print_exception(e)
-        sys.exit(1)
+    # config = None
+    # if args.config:
+    #    try:
+    #        config = DuetBenchConfig(args.config)
+    #    except Exception as e:
+    #        logging.critical(f"Critical config error: {e}")
+    #        traceback.print_exc()
+    #        sys.exit(1)
 
     logging.basicConfig(
         format="%(asctime)s  %(name)-20s %(levelname)-8s  %(message)s",
@@ -162,7 +168,7 @@ def main():
     )
 
     try:
-        results_df = process_renaissance(args.results, config)
+        results_df = process_renaissance(args.results)
     except Exception as e:
         logging.critical(f"Process renaissance failed with exception: {e}")
         traceback.print_exc()
