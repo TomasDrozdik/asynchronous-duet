@@ -40,18 +40,21 @@ Example: [renaissance duet YAML config](./benchmarks/renaissance/renaissance.due
 
 ``` yml
 duetbench:
-  name: renaissance      # name of the duet benchmark
-  verbose: true          # debug logging
-  seed: 42               # seed for repetitions
-  docker_command: podman # command to invoke docker in shell, default is docker
-  duets:                 # list of duets to run, these must be top level YAML elements
-    - a-benchmark        # e.g. chi-square is defined as
+  name: renaissance                 # name of the duet benchmark
+  verbose: true                     # debug logging
+  seed: 42                          # seed for repetitions
+  docker_command: podman            # command to invoke docker in shell, default is docker
+  remove_containers: true           # remove containers after finish
+  repetitions: 2                    # number of harness repetitions
+  repetitions_type: swap            # how to interleave harness repetitions, options: random, swap, in_order
+  sequential_repetitions: 2         # sequential repetitions, defaul
+  sequential_repetitions_type: swap # sequential repetitions type, same as `repetitions_type`
+  sequential_type: after            # sequential type, options: after (run after duet), none (default)
+  duets:                            # list of duets to run, these must be top level YAML elements
+    - a-benchmark
 
 a-benchmark:
-  remove_containers: true # remove containers after finish
-  repetitions: 2          # number of harness repetitions
-  repetitions_type: swap  # how to interleave harness repetitions, options: random, swap, in_order
-
+  repetitions: 4                       # overwrite value from duetbench config
   A:                                   # A run
     image: renaissance                 # docker image to run, must exist on the system
     run: echo RunningA > /duet/results # command to run the benchmark harness in the container

@@ -14,7 +14,8 @@ from duet.duetconfig import (
     BenchmarkConfig,
     DuetBenchConfig,
     DuetConfig,
-    DuetRepetititionType,
+    RepetititionType,
+    SequentialConfig,
 )
 
 
@@ -148,63 +149,98 @@ class DuetBenchmark:
         self.a = Benchmark(self.config.a, logging.getLogger(self.config.a.container))
         self.b = Benchmark(self.config.b, logging.getLogger(self.config.b.container))
 
-    def get_run_order(self, run_id):
-        in_order = [self.a, self.b]
-        reverse_order = list(reversed(in_order))
-        if self.config.repetitions_type == DuetRepetititionType.IN_ORDER:
-            return in_order
-        elif self.config.repetitions_type == DuetRepetititionType.RANDOM:
-            return in_order if random.choice([True, False]) else reverse_order
-        elif self.config.repetitions_type == DuetRepetititionType.SWAP:
-            return reverse_order if run_id % 2 else in_order
-        else:
-            raise NotImplementedError(
-                f"Unknown repetition type: {self.repetitions_type}"
-            )
-
     def run(self):
         self.logger.info("Start duet instances")
         self.a.start_instance()
         self.b.start_instance()
 
         self.logger.info(
-            f"Run duet: {self.config.name}, type: {self.config.type.value}, "
+            f"Run duet: {self.config.name}, "
+            f"type: {self.config.type}, "
             f"repetitions: {self.config.repetitions}, "
             f"repetitions_type: {self.config.repetitions_type}"
         )
 
-        if self.config.repetitions <= 0:
+        self.run_repetitions(
+            self.config.repetitions, self.config.repetitions_type, self.duet_repetition
+        )
+
+        if self.config.sequential_repetitions_type is not SequentialConfig.NONE:
+            self.logger.info(
+                f"Run sequential: {self.config.name}, "
+                f"type: {self.config.sequential_type}, "
+                f"repetitions: {self.config.sequential_repetitions}, "
+                f"repetitions_type: {self.config.sequential_repetitions_type}"
+            )
+
+            self.run_repetitions(
+                self.config.sequential_repetitions,
+                self.config.sequential_repetitions_type,
+                self.sequential_repetition,
+            )
+
+    def get_run_order(self, run_id, repetition_type: RepetititionType):
+        in_order = [self.a, self.b]
+        reverse_order = list(reversed(in_order))
+        if repetition_type == RepetititionType.IN_ORDER:
+            return in_order
+        elif repetition_type == RepetititionType.RANDOM:
+            return in_order if random.choice([True, False]) else reverse_order
+        elif repetition_type == RepetititionType.SWAP:
+            return reverse_order if run_id % 2 else in_order
+        else:
+            raise NotImplementedError(
+                f"Unknown repetition type: {self.repetitions_type}"
+            )
+
+    def duet_repetition(self, run_id, run_order):
+        for benchmark in run_order:
+            benchmark.run_async()
+
+        self.logger.info(f"Wait - runid: {run_id}")
+        for benchmark in run_order:
+            benchmark.wait()
+
+        self.logger.info(f"Get results - runid: {run_id}")
+        tag = f"{self.config.name}.duet.{run_id}"
+        self.a.get_results(self.results_dir, tag)
+        self.b.get_results(self.results_dir, tag)
+
+    def sequential_repetition(self, run_id, run_order):
+        for benchmark in run_order:
+            benchmark.run_async()
+            benchmark.wait()
+
+        self.logger.info(f"Get results - runid: {run_id}")
+        tag = f"{self.config.name}.sequential.{run_id}"
+        self.a.get_results(self.results_dir, tag)
+        self.b.get_results(self.results_dir, tag)
+
+    def run_repetitions(
+        self, repetitions: int, type: RepetititionType, repetition_function
+    ):
+        if repetitions <= 0:
             raise RuntimeWarning(
-                f"Duet `{self.config.name}`,"
-                f"has invalid number of repetitions {self.config.repetitions}"
+                f"Invalid number of repetitions {self.config.repetitions}"
             )
 
         repetition_duration = []
         for run_id in range(self.config.repetitions):
-            run_order = self.get_run_order(run_id)
+            run_order = self.get_run_order(run_id, self.config.repetitions_type)
             self.logger.info(
-                f"Run - runid: {run_id}, order: {[x.config.container for x in run_order]}"
+                f"Run repetition - runid: {run_id}, order: {[x.config.container for x in run_order]}"
             )
-            start = datetime.datetime.now()
-            for benchmark in run_order:
-                benchmark.run_async()
 
-            self.logger.info(f"Wait - runid: {run_id}")
-            self.a.wait()
-            self.b.wait()
+            start = datetime.datetime.now()
+            repetition_function(run_id, run_order)
             end = datetime.datetime.now()
             repetition_duration.append(end - start)
-
-            self.logger.info(f"Get results - runid: {run_id}")
-            tag = f"{self.config.name}.{run_id}"
-            self.a.get_results(self.results_dir, tag)
-            self.b.get_results(self.results_dir, tag)
 
         total_run_time = sum(repetition_duration, datetime.timedelta()).total_seconds()
         average_run_time = total_run_time / len(repetition_duration)
 
         self.logger.info(
-            f"Finish duet: {self.config.name}, "
+            f"Finish repetitions - "
             f"total run time: {datetime.timedelta(seconds=total_run_time)}, "
             f"averave run time: {datetime.timedelta(seconds=average_run_time)}, "
             f"max run time: {max(repetition_duration)}"
@@ -219,22 +255,29 @@ class DuetBenchmark:
         self.b.cleanup(self.config.remove_containers)
 
 
-def create_results_dir(config: DuetBenchConfig, logger):
-    time_tag = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    results_dir = f"results.{config.name}.{time_tag}"
+def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger):
+    if outdir:
+        results_dir = outdir
+    else:
+        time_tag = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        results_dir = f"results.{config.name}.{time_tag}"
+
     try:
         os.mkdir(results_dir)
     except (OSError, FileExistsError) as e:
-        raise RuntimeError(
-            f"Failed to create results directory `{results_dir}` with exception: {e}"
-        )
+        if isinstance(e, FileExistsError) and force:
+            pass
+        else:
+            raise RuntimeError(
+                f"Failed to create results directory `{results_dir}`"
+            ) from e
 
     logger.info(f"Results will be placed in `{results_dir}`")
     return results_dir
 
 
-def run_duets(config: DuetBenchConfig, logger):
-    results_dir = create_results_dir(config, logger)
+def run_duets(config: DuetBenchConfig, args, logger):
+    results_dir = create_results_dir(config, args.outdir, args.force, logger)
     for duet_config in config.duets:
         logger.info(f"Duet `{duet_config.name}`")
         duet = None
@@ -250,22 +293,30 @@ def run_duets(config: DuetBenchConfig, logger):
             logger.warning(f"Duet `{duet_config.name}` issued warning: {e}")
             traceback.print_exc()
         except Exception as e:
-            logging.critical(
-                f"Duet `{duet_config.name}`failed with unexpected expception: {e}"
-            )
+            logger.critical(f"Duet `{duet_config.name}` unexpected exception: {e}")
             traceback.print_exc()
         finally:
             if duet:
                 duet.cleanup()
 
 
-def main():
+def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "config", type=str, help="YAML config file for the duet benchmark"
     )
-    args = parser.parse_args()
+    parser.add_argument("-o", "--outdir", type=str, help="Output directory")
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Overwrite output directory if present",
+    )
+    return parser.parse_args()
 
+
+def main():
+    args = parse_arguments()
     try:
         config = DuetBenchConfig(args.config)
     except Exception as e:
@@ -291,9 +342,9 @@ def main():
         DOCKER = config.docker_command
 
     try:
-        run_duets(config, logger)
-    except RuntimeError as e:
-        logging.critical(f"Critical run error: {e}")
+        run_duets(config, args, logger)
+    except Exception as e:
+        logging.critical(f"Critical run duets error: {e}")
         traceback.print_exc()
         sys.exit(1)
 
