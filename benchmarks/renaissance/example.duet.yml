@@ -1,35 +1,34 @@
 duetbench:
   name: renaissance
-  verbose: true
+  verbose: false
   seed: 42
-  duets:
-    - debug
-    - chi-square
 
-debug:
   remove_containers: true
+
   repetitions: 2
   repetitions_type: swap
 
+  sequential: after
+  sequential_repetitions: 2
+  sequential_repetitions_type: swap
+
+  image: renaissance
+  results:
+    - /duet/results
+
+  duets:
+    - debug
+    #- chi-square
+
+debug:
+  repetitions: 4
   A:
-    image: renaissance
     run: echo RunningA > /duet/results
-    results: # absolute paths
-      - /duet/results
 
   B:
-    image: renaissance
     run: echo RunningB > /duet/results
-    results:
-      - /duet/results
 
 
 chi-square:
-  remove_containers: true
-  repetitions: 2
-
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 10 chi-square
-    results:
-      - /duet/results.json
