@@ -44,29 +44,38 @@ duetbench:
   verbose: true                     # debug logging
   seed: 42                          # seed for repetitions
   docker_command: podman            # command to invoke docker in shell, default is docker
+
   remove_containers: true           # remove containers after finish
+
   repetitions: 2                    # number of harness repetitions
   repetitions_type: swap            # how to interleave harness repetitions, options: random, swap, in_order
+
   sequential_repetitions: 2         # sequential repetitions, defaul
   sequential_repetitions_type: swap # sequential repetitions type, same as `repetitions_type`
   sequential_type: after            # sequential type, options: after (run after duet), none (default)
-  duets:                            # list of duets to run, these must be top level YAML elements
-    - a-benchmark
+
+  artifacts:                        # artifacts to gather before the run
+    uname: uname -a                 # `uname` artifact, run `uname -a > {results_dir}/artifacts/uname`
+    lscpu: lscpu                    # similar, results placed to `{results_dir}/artifacts/lscpu`
+
+  image: renaissance                # docker image to run for a duet run, must exist on the system
+  results:                          # list of result files to copy from the container after each run
+    - /duet/results                 # has to be an absolute path in the context of a Docker image it runs in,
+                                    # for renaissance image it is workdir `/duet/`
+
+  duets:                            # list of duets to run, these must be top level YAML elements,
+    - a-benchmark                   # invalid names: `artifacts`, `duetbench`
 
 a-benchmark:
   repetitions: 4                       # overwrite value from duetbench config
   A:                                   # A run
-    image: renaissance                 # docker image to run, must exist on the system
     run: echo RunningA > /duet/results # command to run the benchmark harness in the container
-    results:                           # list of result files to copy from container after each run
-      - /duet/results                  # has to be absolute paths, in context of renaissance docker
-                                       # image it is its workdir `/duet/`
 
   B:                                   # B run, optional, if not present does A/A run
-    image: renaissance
+    image: renaissance-graal           # override inherited image
     run: echo RunningB > /duet/results
-    results:
-      - /duet/results
+    results:                           # override where are the result files in context of renaissance-graal docker image
+      - /results
 ```
 
 ### How `duetbench.py` does it?

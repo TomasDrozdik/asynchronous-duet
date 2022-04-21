@@ -28,12 +28,19 @@ class ConfigException(Exception):
     pass
 
 
+ARTIFACTS_DIR = "artifacts"
+
+
 def check_valid_keys(under_key: str, config: dict, valid_values):
     for key in config.keys():
         if key not in valid_values:
             raise ConfigException(
                 f"Unknown key `{key}` in {under_key}, valid values {valid_values}"
             )
+
+
+def unique(values):
+    return len(set(values)) == len(values)
 
 
 class BenchmarkConfig:
@@ -167,7 +174,7 @@ class DuetConfig:
 
 
 class DuetBenchConfig:
-    UNIQUE_VALUES = ["name", "verbose", "seed", "docker_command", "duets"]
+    UNIQUE_VALUES = ["name", "verbose", "seed", "docker_command", "duets", "artifacts"]
     VALUES = DuetConfig.VALUES
 
     def __init__(self, config_filename):
@@ -190,6 +197,12 @@ class DuetBenchConfig:
         self.docker_command: str = self.duetbenchconfig.get("docker_command")
 
         self.duet_names: List[str] = self.duetbenchconfig["duets"]
+
+        self.artifacts: dict = (
+            self.duetbenchconfig["artifacts"]
+            if "artifacts" in self.duetbenchconfig
+            else {}
+        )
 
         self.duets = [
             DuetConfig(duet_name, self.config[duet_name], self.duetbenchconfig)
@@ -220,8 +233,8 @@ class DuetBenchConfig:
             ):
                 raise ConfigException(f"Unknown key `{key}` in duetbench")
 
-        # Unique duets
-        if len(set(self.duet_names)) != len(self.duet_names):
+        # Unique result file names i.e. duets and artifacts directory
+        if not unique(self.duet_names + [ARTIFACTS_DIR]):
             raise ConfigException(
                 f"Name clash in duets list: {self.duet_names}                      "
             )

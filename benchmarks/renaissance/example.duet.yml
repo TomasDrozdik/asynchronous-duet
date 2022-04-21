@@ -16,6 +16,10 @@ duetbench:
   results:
     - /duet/results
 
+  artifacts:
+    uname: uname -a
+    lscpu: lscpu
+
   duets:
     - debug
     #- chi-square

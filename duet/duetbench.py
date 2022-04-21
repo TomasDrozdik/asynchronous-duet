@@ -11,6 +11,7 @@ import traceback
 from typing import List
 
 from duet.duetconfig import (
+    ARTIFACTS_DIR,
     BenchmarkConfig,
     DuetBenchConfig,
     DuetConfig,
@@ -263,7 +264,7 @@ def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger
         results_dir = f"results.{config.name}.{time_tag}"
 
     try:
-        os.mkdir(results_dir)
+        os.makedirs(f"{results_dir}/{ARTIFACTS_DIR}")
     except (OSError, FileExistsError) as e:
         if isinstance(e, FileExistsError) and force:
             pass
@@ -276,10 +277,23 @@ def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger
     return results_dir
 
 
-def run_duets(config: DuetBenchConfig, args, logger):
-    results_dir = create_results_dir(config, args.outdir, args.force, logger)
+def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
+    logging.info("Gather artifacts")
+    for artifact, command in artifacts_config.items():
+        result_path = f"{results_dir}/{ARTIFACTS_DIR}/{artifact}"
+        logger.info(f"Artifact `{artifact}` from `{command}` to `{result_path}`")
+        with open(result_path, "w") as output:
+            p = subprocess.run(command.split(), stdout=output, stderr=subprocess.PIPE)
+        if p.returncode != 0:
+            logger.error(
+                f"Artifact `{artifact}` command failed with error {p.returncode}\n"
+                f"sterr: {p.stderr.decode('utf-8')}"
+            )
+
+
+def run_duets(config: DuetBenchConfig, results_dir: str, logger):
     for duet_config in config.duets:
-        logger.info(f"Duet `{duet_config.name}`")
+        logger.info(f"DuetBenchmark `{duet_config.name}`")
         duet = None
         try:
             duet = DuetBenchmark(
@@ -312,6 +326,12 @@ def parse_arguments():
         action="store_true",
         help="Overwrite output directory if present",
     )
+    parser.add_argument(
+        "-a",
+        "--artifacts-only",
+        action="store_true",
+        help="Only gather artifacts, do not run duet",
+    )
     return parser.parse_args()
 
 
@@ -342,7 +362,10 @@ def main():
         DOCKER = config.docker_command
 
     try:
-        run_duets(config, args, logger)
+        results_dir = create_results_dir(config, args.outdir, args.force, logger)
+        gather_artifacts(config.artifacts, results_dir, logger)
+        if not args.artifacts_only:
+            run_duets(config, results_dir, logger)
     except Exception as e:
         logging.critical(f"Critical run duets error: {e}")
         traceback.print_exc()
