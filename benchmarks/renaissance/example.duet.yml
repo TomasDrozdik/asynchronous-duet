@@ -8,7 +8,6 @@ duetbench:
   repetitions: 2
   repetitions_type: swap
 
-  sequential: after
   sequential_repetitions: 2
   sequential_repetitions_type: swap
 
@@ -35,4 +34,4 @@ debug:
 
 chi-square:
   A:
-    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 10 chi-square
+    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 2 chi-square
