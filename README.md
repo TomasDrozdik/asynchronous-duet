@@ -50,9 +50,8 @@ duetbench:
   repetitions: 2                    # number of harness repetitions
   repetitions_type: swap            # how to interleave harness repetitions, options: random, swap, in_order
 
-  sequential_repetitions: 2         # sequential repetitions, defaul
+  sequential_repetitions: 2         # sequential repetitions, default 0
   sequential_repetitions_type: swap # sequential repetitions type, same as `repetitions_type`
-  sequential_type: after            # sequential type, options: after (run after duet), none (default)
 
   artifacts:                        # artifacts to gather before the run
     uname: uname -a                 # `uname` artifact, run `uname -a > {results_dir}/artifacts/uname`

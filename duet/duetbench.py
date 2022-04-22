@@ -16,7 +16,6 @@ from duet.duetconfig import (
     DuetBenchConfig,
     DuetConfig,
     RepetititionType,
-    SequentialConfig,
 )
 
 
@@ -166,10 +165,9 @@ class DuetBenchmark:
             self.config.repetitions, self.config.repetitions_type, self.duet_repetition
         )
 
-        if self.config.sequential_repetitions_type is not SequentialConfig.NONE:
+        if self.config.sequential_repetitions > 0:
             self.logger.info(
                 f"Run sequential: {self.config.name}, "
-                f"type: {self.config.sequential_type}, "
                 f"repetitions: {self.config.sequential_repetitions}, "
                 f"repetitions_type: {self.config.sequential_repetitions_type}"
             )

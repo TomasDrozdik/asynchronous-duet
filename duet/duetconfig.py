@@ -19,11 +19,6 @@ class RepetititionType(enum.Enum):
     SWAP = "swap"
 
 
-class SequentialConfig(enum.Enum):
-    AFTER = "after"
-    NONE = "none"
-
-
 class ConfigException(Exception):
     pass
 
@@ -94,7 +89,6 @@ class DuetConfig:
         "remove_containers",
         "repetitions",
         "repetitions_type",
-        "sequential",
         "sequential_repetitions",
         "sequential_repetitions_type",
     ] + BenchmarkConfig.VALUES
@@ -116,10 +110,6 @@ class DuetConfig:
 
         self.repetitions_type = RepetititionType(
             self.get_or_inherit("repetitions_type", default=RepetititionType.SWAP.value)
-        )
-
-        self.sequential_type = SequentialConfig(
-            self.get_or_inherit("sequential", default=SequentialConfig.NONE.value)
         )
 
         self.sequential_repetitions: int = self.get_or_inherit(
@@ -157,17 +147,6 @@ class DuetConfig:
             return self.duetbenchconfig[key]
         elif default:
             return default
-
-    def check(self):
-        # Check sequential repetitions validity
-        if (
-            self.sequential_repetitions > 0
-            and self.sequential_repetitions_type == SequentialConfig.NONE
-        ):
-            raise ConfigException(
-                f"Duet `{self.name}` requested {self.sequential_repetitions} sequential repetitions"
-                f"however the sequential repetitions type is set to {self.sequential_repetitions_type}"
-            )
 
     def __str__(self):
         return str(vars(self))
@@ -208,10 +187,6 @@ class DuetBenchConfig:
             DuetConfig(duet_name, self.config[duet_name], self.duetbenchconfig)
             for duet_name in self.duet_names
         ]
-
-        self.sequential: SequentialConfig = SequentialConfig(
-            self.duetbenchconfig.get("sequential", "none")
-        )
 
         self.check()
 
