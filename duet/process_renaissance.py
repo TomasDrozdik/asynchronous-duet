@@ -2,51 +2,33 @@
 
 import argparse
 import os
-import re
 import sys
 import traceback
 import pandas as pd
 import json
 import logging
 
-# from duet.duetconfig import DuetBenchConfig
-
-RESULTS_FORMAT = [
-    "benchmark",
-    "runid",
-    "wallclock_start_ms",
-    "epoch_start_ms",
-    "iteration_time_ns",
-    "iteration",
-    "machine",
-    "provider",
-    "jdk",
-    "jdk_version",
-    "time",
-    "pair",
-    "kind",
-    "total_ms",
-    "process_cpu_time_ns",
-    "compilation_time_ms",
-    "compilation_total_ms",
-]
+from duet.duetconfig import ResultFile
 
 
 class RenaissanceResult:
-    FILENAME_REGEX = re.compile(
-        r"(?P<duet_name>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<duet_type>[AB])\.results.json"
-    )
-
-    def __init__(self, result_path: str, duet_name: str, pair: str, runid: str):
-        self.result_path = result_path
-        self.duet_name = duet_name
-        self.pair = pair
-        self.runid = runid
+    def __init__(self, result_file: ResultFile):
+        self.result_file = result_file
 
     def convert_results_json(self) -> pd.DataFrame:
-        with open(self.result_path) as json_file:
-            results_json = json.load(json_file)
+        df = None
+        try:
+            with open(self.result_file.result_path) as json_file:
+                results_json = json.load(json_file)
+            df = self._convert_to_df(results_json)
+            df = self._pre_process_iterations(df)
+        except Exception:
+            logging.error("ReneissanceResult failed with exception")
+            traceback.print_exc()
+            df = None
+        return df
 
+    def _convert_to_df(self, results_json) -> pd.DataFrame:
         vm_start_ms = results_json["environment"]["vm"]["start_unix_ms"]
         results = []
         total_iterations = 0
@@ -59,19 +41,21 @@ class RenaissanceResult:
         for benchmark, benchmark_data in results_json["data"].items():
             for iteration, iteration_data in enumerate(benchmark_data["results"]):
                 total_iterations += 1
+
                 results.append(
                     {
                         "benchmark": benchmark,
-                        "runid": self.runid,
-                        "pair": self.pair,
+                        "runid": self.result_file.runid,
+                        "type": self.result_file.type,
+                        "pair": self.result_file.pair,
                         "iteration": iteration,
                         "epoch_start_ms": vm_start_ms,
                         "iteration_time_ns": iteration_data["duration_ns"],
                         "jdk": results_json["environment"]["jre"]["name"],
                         "jdk_version": results_json["environment"]["jre"]["version"],
-                        # "machine":
-                        # "provider":
-                        # TODO: Dunno what to put in following fields
+                        # TODO: Figure out what to put in the following fields
+                        # "machine": # parse artifacts
+                        # "provider": # parse artifacts
                         # "wallclock_start_ms": vm_start_ms,
                         # "time": results_json["environment"]["vm"]["start_iso"],
                         # "kind": None,
@@ -82,58 +66,49 @@ class RenaissanceResult:
                     }
                 )
 
+        df = pd.DataFrame(results)
+        df = RenaissanceResult.pre_process_iterations(df)
         logging.info(
-            f"Processed file: {self.result_path}, runid: {self.runid}, pair: {self.pair}, total_iterations: {total_iterations}"
+            f"Processed file: {self.result_file.result_path}, runid: {self.result_file.runid}, pair: {self.result_file.pair}, total_iterations: {total_iterations}"
         )
-        return pd.DataFrame(results)
-
-    def convert_results_csv(self) -> pd.DataFrame:
-        df = pd.read_csv(self.result_path)
-        df["epoch_start_ms"] = df["vm_start_unix_ms"]
-        df["iteration_time_ns"] = df["duration_ns"]
-        df["iteration"] = df.groupby("benchmark").cumcount(ascending=True)
-        df["runid"] = self.runid
-        df["pair"] = self.pair
-        # df["provider"] = None
-        # df["jdk"] = None
-        # df["jdk_version"] = None
-        # df["wallclock_start_ms"] = df["vm_start_unix_ms"].astype(int) + df["uptime_ns"].astype(int) / 1000
-        # df["time"] = None
-        # df["kind"] = None
-        # df["process_cpu_time_ns"] = None
-        # df["compilation_time_ms"] = None
-        # df["compilation_total_ms"] = None
         return df
 
-    def convert(self) -> pd.DataFrame:
-        return self.convert_results_json()
-
-
-def parse_renaissance_result(result_path: str) -> RenaissanceResult:
-    result_filename = os.path.basename(result_path)
-
-    match = RenaissanceResult.FILENAME_REGEX.match(result_filename)
-    if match:
-        return RenaissanceResult(
-            result_path,
-            match.group("duet_name"),
-            match.group("duet_type"),
-            match.group("runid"),
+    def _pre_process_iterations(self, results: pd.DataFrame) -> pd.DataFrame:
+        results["iteration_start_ns"] = results.groupby(
+            ["benchmark", "runid", "type", "pair"]
+        )["iteration_time_ns"].transform(pd.Series.cumsum)
+        results["iteration_start_ns"] = results.groupby(
+            ["benchmark", "runid", "type", "pair"]
+        )["iteration_start_ns"].shift(1, fill_value=0)
+        results["iteration_start_ns"] = (
+            results["iteration_start_ns"] + results["epoch_start_ms"] * 1000
         )
-    else:
-        logging.warning(f"Failed to match `{result_path}`")
+
+        results["iteration_end_ns"] = (
+            results["iteration_start_ns"] + results["iteration_time_ns"]
+        )
+        return results
 
 
 def process_renaissance(results_dir: os.path) -> pd.DataFrame:
     renaissance_results = []
     for file in os.listdir(results_dir):
-        result = parse_renaissance_result(f"{results_dir}/{file}")
-        if result:
-            renaissance_results.append(result)
+        result_path = f"{results_dir}/{file}"
+        result_file = ResultFile.parse(result_path)
+        if not result_file:
+            logging.warning(f"Failed to match result file `{result_path}")
+        else:
+            renaissance_results.append(RenaissanceResult(result_file))
 
     result = pd.DataFrame()
     for renaissance_result in renaissance_results:
-        result = pd.concat([result, renaissance_result.convert()])
+        df = renaissance_result.convert_results_json()
+        if df:
+            result = pd.concat(
+                [
+                    result,
+                ]
+            )
     return result
 
 
@@ -148,18 +123,7 @@ def main():
         type=str,
         help="Output results.csv file, default <results_dir_name>.csv",
     )
-    # For now deprecated parameter config
-    # jparser.add_argument("-c", "--config", type=str, help="Duet config file")
     args = parser.parse_args()
-
-    # config = None
-    # if args.config:
-    #    try:
-    #        config = DuetBenchConfig(args.config)
-    #    except Exception as e:
-    #        logging.critical(f"Critical config error: {e}")
-    #        traceback.print_exc()
-    #        sys.exit(1)
 
     logging.basicConfig(
         format="%(asctime)s  %(name)-20s %(levelname)-8s  %(message)s",

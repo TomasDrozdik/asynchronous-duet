@@ -3,6 +3,23 @@ duetbench:
   verbose: false
   seed: 42
   docker_command: docker
+
+  remove_containers: true
+  repetitions: 2
+  repetitions_type: swap
+
+  sequential_repetitions: 2
+  sequential_repetitions_type: swap
+
+  artifacts:
+    uname: uname -a
+    lscpu: lscpu
+
+  image: renaissance
+
+  results:
+    - /duet/results.json
+
   duets:
     - akka-uct
     - als
@@ -32,323 +49,173 @@ duetbench:
 
 akka-uct:
   # Runs the Unbalanced Cobwebbed Tree actor workload in Akka.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json akka-uct
-    results:
-      - /duet/results.json
 
 als:
   # Runs the ALS algorithm from the Spark MLlib.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json als
-    results:
-      - /duet/results.json
 
 
 chi-square:
   # Runs the chi-square test from Spark MLlib.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json chi-square
-    results:
-      - /duet/results.json
 
 
 db-shootout:
   # Executes a shootout test using several in-memory databases.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json db-shootout
-    results:
-      - /duet/results.json
 
 
 dec-tree:
   # Runs the Random Forest algorithm from Spark MLlib.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json dec-tree
-    results:
-      - /duet/results.json
 
 
 dotty:
   # Runs the Dotty compiler on a set of source code files.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json dotty
-    results:
-      - /duet/results.json
 
 
 finagle-chirper:
   # Simulates a microblogging service using Twitter Finagle.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json finagle-chirper
-    results:
-      - /duet/results.json
 
 
 finagle-http:
   # Sends many small Finagle HTTP requests to a Finagle HTTP server and awaits
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json finagle-http
-    results:
-      - /duet/results.json
 
 fj-kmeans:
   # Runs the k-means algorithm using the fork/join framework.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json fj-kmeans
-    results:
-      - /duet/results.json
 
 
 future-genetic:
   # Runs a genetic algorithm using the Jenetics library and futures.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json future-genetic
-    results:
-      - /duet/results.json
 
 
 gauss-mix:
   # Computes a Gaussian mixture model using expectation-maximization.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json gauss-mix
-    results:
-      - /duet/results.json
 
 
 log-regression:
   # Runs the logistic regression workload from the Spark MLlib.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json log-regression
-    results:
-      - /duet/results.json
 
 
 mnemonics:
   # Solves the phone mnemonics problem using JDK streams.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json mnemonics
-    results:
-      - /duet/results.json
 
 
 movie-lens:
   # Recommends movies using the ALS algorithm.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json movie-lens
-    results:
-      - /duet/results.json
 
 
 naive-bayes:
   # Runs the multinomial naive Bayes algorithm from the Spark MLlib.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json naive-bayes
-    results:
-      - /duet/results.json
 
 
 neo4j-analytics:
   # Executes Neo4J graph queries against a movie database.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json neo4j-analytics
-    results:
-      - /duet/results.json
 
 
 page-rank:
   # Runs a number of PageRank iterations, using RDDs.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json page-rank
-    results:
-      - /duet/results.json
 
 
 par-mnemonics:
   # Solves the phone mnemonics problem using parallel JDK streams.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json par-mnemonics
-    results:
-      - /duet/results.json
 
 
 philosophers:
   # Solves a variant of the dining philosophers problem using ScalaSTM.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json philosophers
-    results:
-      - /duet/results.json
 
 
 reactors:
   # Runs benchmarks inspired by the Savina microbenchmark workloads in a
   # sequence on Reactors.IO.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json reactors
-    results:
-      - /duet/results.json
 
 
 rx-scrabble:
   # Solves the Scrabble puzzle using the Rx streams.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json rx-scrabble
-    results:
-      - /duet/results.json
 
 
 scala-doku:
   # Solves Sudoku Puzzles using Scala collections.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json scala-doku
-    results:
-      - /duet/results.json
 
 
 scala-kmeans:
   # Runs the K-Means algorithm using Scala collections.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json scala-kmeans
-    results:
-      - /duet/results.json
 
 
 scala-stm-bench7:
   # Runs the stmbench7 benchmark using ScalaSTM.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json scala-stm-bench7
-    results:
-      - /duet/results.json
 
 
 scrabble:
   # Solves the Scrabble puzzle using JDK Streams.
-  remove_containers: true
-  repetitions: 2
-  repetitions_type: swap
 
   A:
-    image: renaissance
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json scrabble
-    results:
-      - /duet/results.json
