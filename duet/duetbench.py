@@ -16,6 +16,8 @@ from duet.duetconfig import (
     DuetBenchConfig,
     DuetConfig,
     RepetititionType,
+    ResultFile,
+    Type,
 )
 
 
@@ -108,12 +110,16 @@ class Benchmark:
         assert self.async_handle is not None
         self.runner.wait_async(self.async_handle)
 
-    def get_results(self, results_dir, tag):
+    def get_results(
+        self, results_dir: str, benchmark: str, run_id: int, type: Type, run_order: str
+    ):
         for remote_result_path in self.config.result_files:
             # Since docker cp cannot rename the file (remote_result_path), we first copy the file
             # (local_tmp_path) and then rename it (local_result_path).
             filename = os.path.basename(remote_result_path)
+
             local_tmp_path = f"{results_dir}/{filename}"
+
             if os.path.exists(local_tmp_path):
                 raise RuntimeError(
                     f"Result name conflict, move of `{remote_result_path}` to `{local_tmp_path}` failed"
@@ -123,9 +129,16 @@ class Benchmark:
                 f"{DOCKER} cp {self.config.container}:{remote_result_path} {local_tmp_path}"
             )
 
-            local_result_path = (
-                f"{results_dir}/{tag}.{self.config.duet_type.value}.{filename}"
+            result_file = ResultFile(
+                benchmark,
+                run_id,
+                type,
+                run_order,
+                pair=self.config.pair.value,
+                result_file=filename,
             )
+
+            local_result_path = f"{results_dir}/{result_file.filename()}"
             os.rename(local_tmp_path, local_result_path)
 
     def cleanup(self, rm: bool):  # nothrow
@@ -192,6 +205,10 @@ class DuetBenchmark:
                 f"Unknown repetition type: {self.repetitions_type}"
             )
 
+    @staticmethod
+    def run_order_str(run_order):
+        return "".join([benchmark.config.pair.value for benchmark in run_order])
+
     def duet_repetition(self, run_id, run_order):
         for benchmark in run_order:
             benchmark.run_async()
@@ -200,20 +217,46 @@ class DuetBenchmark:
         for benchmark in run_order:
             benchmark.wait()
 
-        self.logger.info(f"Get results - runid: {run_id}")
-        tag = f"{self.config.name}.duet.{run_id}"
-        self.a.get_results(self.results_dir, tag)
-        self.b.get_results(self.results_dir, tag)
+        self.logger.info(
+            f"Get results - runid: {run_id}, type: {Type.SEQUENTIAL.value}"
+        )
+        self.a.get_results(
+            self.results_dir,
+            self.config.name,
+            run_id,
+            Type.DUET,
+            DuetBenchmark.run_order_str(run_order),
+        )
+        self.b.get_results(
+            self.results_dir,
+            self.config.name,
+            run_id,
+            Type.DUET,
+            DuetBenchmark.run_order_str(run_order),
+        )
 
     def sequential_repetition(self, run_id, run_order):
         for benchmark in run_order:
             benchmark.run_async()
             benchmark.wait()
 
-        self.logger.info(f"Get results - runid: {run_id}")
-        tag = f"{self.config.name}.sequential.{run_id}"
-        self.a.get_results(self.results_dir, tag)
-        self.b.get_results(self.results_dir, tag)
+        self.logger.info(
+            f"Get results - runid: {run_id}, type: {Type.SEQUENTIAL.value}"
+        )
+        self.a.get_results(
+            self.results_dir,
+            self.config.name,
+            run_id,
+            Type.SEQUENTIAL,
+            DuetBenchmark.run_order_str(run_order),
+        )
+        self.b.get_results(
+            self.results_dir,
+            self.config.name,
+            run_id,
+            Type.SEQUENTIAL,
+            DuetBenchmark.run_order_str(run_order),
+        )
 
     def run_repetitions(
         self, repetitions: int, type: RepetititionType, repetition_function
@@ -276,7 +319,7 @@ def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger
 
 
 def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
-    logging.info("Gather artifacts")
+    logger.info("Gather artifacts")
     for artifact, command in artifacts_config.items():
         result_path = f"{results_dir}/{ARTIFACTS_DIR}/{artifact}"
         logger.info(f"Artifact `{artifact}` from `{command}` to `{result_path}`")

@@ -1,6 +1,8 @@
+import os
 from typing import List
 import enum
 import yaml
+import re
 
 
 class DuetBenchType(enum.Enum):
@@ -8,7 +10,7 @@ class DuetBenchType(enum.Enum):
     AA = "A-A"
 
 
-class DuetType(enum.Enum):
+class Pair(enum.Enum):
     A = "A"
     B = "B"
 
@@ -17,6 +19,11 @@ class RepetititionType(enum.Enum):
     IN_ORDER = "in_order"
     RANDOM = "random"
     SWAP = "swap"
+
+
+class Type(enum.Enum):
+    SEQUENTIAL = "sequential"
+    DUET = "duet"
 
 
 class ConfigException(Exception):
@@ -41,7 +48,7 @@ def unique(values):
 class BenchmarkConfig:
     VALUES = ["image", "run", "results"]
 
-    def __init__(self, parent, config: dict, duet_type: DuetType):
+    def __init__(self, parent, config: dict, pair: Pair):
         check_valid_keys(parent, config, BenchmarkConfig.VALUES)
 
         self.parent = parent
@@ -50,9 +57,9 @@ class BenchmarkConfig:
 
         self.duetname = self.parent.name
 
-        self.duet_type = duet_type
+        self.pair = pair
 
-        self.container = f"{self.duetname}.{duet_type.value}"
+        self.container = f"{self.duetname}.{pair.value}"
 
         self.image: str = self.get_or_inherit("image", None)
 
@@ -71,12 +78,12 @@ class BenchmarkConfig:
     def check(self):
         if not self.image:
             raise ConfigException(
-                f"DuetBenchmark {self.duetname}:{self.duet_type} does has no image"
+                f"DuetBenchmark {self.duetname}:{self.pair} does has no image"
             )
 
         if not self.result_files:
             raise ConfigException(
-                f"DuetBenchmark {self.duetname}:{self.duet_type} does has no result files"
+                f"DuetBenchmark {self.duetname}:{self.pair} does has no result files"
             )
 
     def __str__(self):
@@ -124,21 +131,21 @@ class DuetConfig:
 
         self.type = (
             DuetBenchType.AB
-            if DuetType.A.value in self.config and DuetType.B.value in self.config
+            if Pair.A.value in self.config and Pair.B.value in self.config
             else DuetBenchType.AA
         )
 
-        if DuetType.A.value not in config:
+        if Pair.A.value not in config:
             raise ConfigException(f"Duet `{name}` is missing benchmark config for A")
 
-        self.a = BenchmarkConfig(self, config[DuetType.A.value], DuetType.A)
+        self.a = BenchmarkConfig(self, config[Pair.A.value], Pair.A)
 
         b_config = (
-            config[DuetType.B.value]
+            config[Pair.B.value]
             if self.type == DuetBenchType.AB
-            else config[DuetType.A.value]
+            else config[Pair.A.value]
         )
-        self.b = BenchmarkConfig(self, b_config, DuetType.B)
+        self.b = BenchmarkConfig(self, b_config, Pair.B)
 
     def get_or_inherit(self, key, default):
         if key in self.config:
@@ -224,3 +231,48 @@ class DuetBenchConfig:
 
     def __str__(self):
         return str(vars(self))
+
+
+class ResultFile:
+    FILENAME_REGEX = re.compile(
+        r"(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<run_id>\d+)\.(?P<type>duet|sequential)\.(?P<run_order>[AB]+)\.(?P<pair>[AB])\.(?P<result_file>.*)"
+    )
+
+    @staticmethod
+    def parse(result_path: str):
+        basename = os.path.basename(result_path)
+        match = ResultFile.FILENAME_REGEX.match(basename)
+        return (
+            ResultFile(
+                benchmark=match.group("benchmark"),
+                run_id=match.group("run_id"),
+                type=match.group("type"),
+                run_order=match.group("run_order"),
+                pair=match.group("pair"),
+                result_file=match.group("result_file"),
+                result_path=result_path,
+            )
+            if match
+            else None
+        )
+
+    def __init__(
+        self,
+        benchmark: str,
+        run_id: int,
+        type: Type,
+        run_order: str,
+        pair: str,
+        result_file: str,
+        result_path: str = None,  # set by parse method only
+    ):
+        self.benchmark = benchmark
+        self.run_id = run_id
+        self.type = type
+        self.run_order = run_order
+        self.pair = pair
+        self.result_file = result_file
+        self.result_path = result_path
+
+    def filename(self):
+        return f"{self.benchmark}.{self.run_id}.{self.type.value}.{self.run_order}.{self.pair}.{self.result_file}"
