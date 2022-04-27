@@ -21,7 +21,7 @@ duetbench:
 
   duets:
     - debug
-    #- chi-square
+    - chi-square
 
 debug:
   repetitions: 4
@@ -33,5 +33,7 @@ debug:
 
 
 chi-square:
+  results:
+    - /duet/results.json
   A:
     run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 2 chi-square
