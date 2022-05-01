@@ -18,6 +18,7 @@ duetbench:
   artifacts:
     uname: uname -a
     lscpu: lscpu
+    meminfo: cat /proc/meminfo
 
   duets:
     - debug
@@ -36,4 +37,4 @@ chi-square:
   results:
     - /duet/results.json
   A:
-    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 2 chi-square
+    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 10 chi-square

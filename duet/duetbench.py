@@ -323,13 +323,19 @@ def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
     for artifact, command in artifacts_config.items():
         result_path = f"{results_dir}/{ARTIFACTS_DIR}/{artifact}"
         logger.info(f"Artifact `{artifact}` from `{command}` to `{result_path}`")
-        with open(result_path, "w") as output:
-            p = subprocess.run(command.split(), stdout=output, stderr=subprocess.PIPE)
-        if p.returncode != 0:
-            logger.error(
-                f"Artifact `{artifact}` command failed with error {p.returncode}\n"
-                f"sterr: {p.stderr.decode('utf-8')}"
-            )
+        try:
+            with open(result_path, "w") as output:
+                p = subprocess.run(
+                    command.split(), stdout=output, stderr=subprocess.PIPE
+                )
+            if p.returncode != 0:
+                logger.error(
+                    f"Artifact `{artifact}` command failed with error {p.returncode}\n"
+                    f"sterr: {p.stderr.decode('utf-8')}"
+                )
+        except Exception:
+            logging.error(f"Artifact `{artifact}` command failed with exception")
+            traceback.print_exc()
 
 
 def run_duets(config: DuetBenchConfig, results_dir: str, logger):
