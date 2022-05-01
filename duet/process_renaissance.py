@@ -21,7 +21,6 @@ class RenaissanceResult:
             with open(self.result_file.result_path) as json_file:
                 results_json = json.load(json_file)
             df = self._convert_to_df(results_json)
-            df = self._pre_process_iterations(df)
         except Exception:
             logging.error("ReneissanceResult failed with exception")
             traceback.print_exc()
@@ -45,15 +44,16 @@ class RenaissanceResult:
                 results.append(
                     {
                         "benchmark": benchmark,
-                        "runid": self.result_file.runid,
+                        "runid": self.result_file.run_id,
                         "type": self.result_file.type,
                         "pair": self.result_file.pair,
+                        "order": self.result_file.run_order,
                         "iteration": iteration,
                         "epoch_start_ms": vm_start_ms,
                         "iteration_time_ns": iteration_data["duration_ns"],
-                        "jdk": results_json["environment"]["jre"]["name"],
-                        "jdk_version": results_json["environment"]["jre"]["version"],
                         # TODO: Figure out what to put in the following fields
+                        # "jdk": results_json["environment"]["jre"]["name"],
+                        # "jdk_version": results_json["environment"]["jre"]["version"],
                         # "machine": # parse artifacts
                         # "provider": # parse artifacts
                         # "wallclock_start_ms": vm_start_ms,
@@ -67,27 +67,10 @@ class RenaissanceResult:
                 )
 
         df = pd.DataFrame(results)
-        df = RenaissanceResult.pre_process_iterations(df)
         logging.info(
-            f"Processed file: {self.result_file.result_path}, runid: {self.result_file.runid}, pair: {self.result_file.pair}, total_iterations: {total_iterations}"
+            f"Processed file: {self.result_file.result_path}, runid: {self.result_file.run_id}, pair: {self.result_file.pair}, total_iterations: {total_iterations}"
         )
         return df
-
-    def _pre_process_iterations(self, results: pd.DataFrame) -> pd.DataFrame:
-        results["iteration_start_ns"] = results.groupby(
-            ["benchmark", "runid", "type", "pair"]
-        )["iteration_time_ns"].transform(pd.Series.cumsum)
-        results["iteration_start_ns"] = results.groupby(
-            ["benchmark", "runid", "type", "pair"]
-        )["iteration_start_ns"].shift(1, fill_value=0)
-        results["iteration_start_ns"] = (
-            results["iteration_start_ns"] + results["epoch_start_ms"] * 1000
-        )
-
-        results["iteration_end_ns"] = (
-            results["iteration_start_ns"] + results["iteration_time_ns"]
-        )
-        return results
 
 
 def process_renaissance(results_dir: os.path) -> pd.DataFrame:
@@ -103,13 +86,28 @@ def process_renaissance(results_dir: os.path) -> pd.DataFrame:
     result = pd.DataFrame()
     for renaissance_result in renaissance_results:
         df = renaissance_result.convert_results_json()
-        if df:
-            result = pd.concat(
-                [
-                    result,
-                ]
-            )
+        if df is not None:
+            result = pd.concat([df, result])
     return result
+
+
+def pre_process_iterations(results: pd.DataFrame) -> pd.DataFrame:
+    results["iteration_start_ns"] = results.groupby(
+        ["benchmark", "runid", "type", "pair"]
+    )["iteration_time_ns"].transform(pd.Series.cumsum)
+
+    results["iteration_start_ns"] = results.groupby(
+        ["benchmark", "runid", "type", "pair"]
+    )["iteration_start_ns"].shift(1, fill_value=0)
+
+    results["iteration_start_ns"] = (
+        results["iteration_start_ns"] + results["epoch_start_ms"] * 1_000_000
+    )
+
+    results["iteration_end_ns"] = (
+        results["iteration_start_ns"] + results["iteration_time_ns"]
+    )
+    return results
 
 
 def main():
@@ -133,6 +131,7 @@ def main():
 
     try:
         results_df = process_renaissance(args.results)
+        results_df = pre_process_iterations(results_df)
     except Exception as e:
         logging.critical(f"Process renaissance failed with exception: {e}")
         traceback.print_exc()

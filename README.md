@@ -36,7 +36,7 @@ docker build --tag renaissance .
 For each asynchronous-duet run you need a config file.
 This config file is uniquely tied to docker images it is build for e.g. `renaissance` image above uses `/duet` workdir and config file has to reflect that.
 
-Example: [renaissance duet YAML config](./benchmarks/renaissance/renaissance.duet.yml)
+Example: [renaissance duet YAML config](./benchmarks/renaissance/duet.yml)
 
 ``` yml
 duetbench:

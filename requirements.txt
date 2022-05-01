@@ -1,5 +1,4 @@
 black
-bokeh
 flake8
 ipykernel
 numpy
@@ -7,3 +6,4 @@ pandas
 pre-commit
 pytest
 pyyaml
+seaborn
