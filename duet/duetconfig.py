@@ -55,21 +55,23 @@ class BenchmarkConfig:
 
         self.config = config
 
-        self.duetname = self.parent.name
+        self.suite = self.get_or_inherit("suite")
+
+        self.benchmark = self.parent.benchmark
 
         self.pair = pair
 
-        self.container = f"{self.duetname}.{pair.value}"
+        self.container = f"{self.benchmark}.{pair.value}"
 
-        self.image: str = self.get_or_inherit("image", None)
+        self.image: str = self.get_or_inherit("image")
 
         self.run_command: str = config["run"]
 
-        self.result_files: List[str] = self.get_or_inherit("results", None)
+        self.result_files: List[str] = self.get_or_inherit("results")
 
         self.check()
 
-    def get_or_inherit(self, key, default):
+    def get_or_inherit(self, key, default=None):
         if key in self.config:
             return self.config[key]
         else:
@@ -78,12 +80,12 @@ class BenchmarkConfig:
     def check(self):
         if not self.image:
             raise ConfigException(
-                f"DuetBenchmark {self.duetname}:{self.pair} does has no image"
+                f"DuetBenchmark {self.suite}:{self.pair} does has no image"
             )
 
         if not self.result_files:
             raise ConfigException(
-                f"DuetBenchmark {self.duetname}:{self.pair} does has no result files"
+                f"DuetBenchmark {self.suite}:{self.pair} does has no result files"
             )
 
     def __str__(self):
@@ -93,6 +95,7 @@ class BenchmarkConfig:
 class DuetConfig:
     UNIQUE_VALUES = ["A", "B"]
     VALUES = [
+        "suite",
         "remove_containers",
         "repetitions",
         "repetitions_type",
@@ -100,14 +103,18 @@ class DuetConfig:
         "sequential_repetitions_type",
     ] + BenchmarkConfig.VALUES
 
-    def __init__(self, name: str, config: dict, duetbenchconfig):
-        check_valid_keys(name, config, DuetConfig.UNIQUE_VALUES + DuetConfig.VALUES)
+    def __init__(self, benchmark: str, config: dict, duetbenchconfig):
+        check_valid_keys(
+            benchmark, config, DuetConfig.UNIQUE_VALUES + DuetConfig.VALUES
+        )
+
+        self.benchmark = benchmark
+
+        self.config = config
 
         self.duetbenchconfig = duetbenchconfig
 
-        self.name = name
-
-        self.config = config
+        self.suite = self.get_or_inherit("suite")
 
         self.remove_containers: bool = self.get_or_inherit(
             "remove_containers", default=True
@@ -136,7 +143,9 @@ class DuetConfig:
         )
 
         if Pair.A.value not in config:
-            raise ConfigException(f"Duet `{name}` is missing benchmark config for A")
+            raise ConfigException(
+                f"Duet `{self.benchmark}` is missing benchmark config for A"
+            )
 
         self.a = BenchmarkConfig(self, config[Pair.A.value], Pair.A)
 
@@ -147,20 +156,22 @@ class DuetConfig:
         )
         self.b = BenchmarkConfig(self, b_config, Pair.B)
 
-    def get_or_inherit(self, key, default):
+    def get_or_inherit(self, key, default=None):
         if key in self.config:
             return self.config[key]
         elif key in self.duetbenchconfig:
             return self.duetbenchconfig[key]
         elif default:
             return default
+        else:
+            raise ConfigException(f"{self} can't inherit {key}")
 
     def __str__(self):
         return str(vars(self))
 
 
 class DuetBenchConfig:
-    UNIQUE_VALUES = ["name", "verbose", "seed", "docker_command", "duets", "artifacts"]
+    UNIQUE_VALUES = ["suite", "verbose", "seed", "docker_command", "duets", "artifacts"]
     VALUES = DuetConfig.VALUES
 
     def __init__(self, config_filename):
@@ -174,7 +185,7 @@ class DuetBenchConfig:
             DuetBenchConfig.UNIQUE_VALUES + DuetBenchConfig.VALUES,
         )
 
-        self.name: str = self.duetbenchconfig["name"]
+        self.suite: str = self.duetbenchconfig["suite"]
 
         self.verbose: bool = self.duetbenchconfig.get("verbose")
 
@@ -235,7 +246,7 @@ class DuetBenchConfig:
 
 class ResultFile:
     FILENAME_REGEX = re.compile(
-        r"(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<run_id>\d+)\.(?P<type>duet|sequential)\.(?P<run_order>[AB]+)\.(?P<pair>[AB])\.(?P<result_file>.*)"
+        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<run_id>\d+)\.(?P<type>duet|sequential)\.(?P<run_order>[AB]+)\.(?P<pair>[AB])\.(?P<result_file>.*)"
     )
 
     @staticmethod
@@ -244,6 +255,7 @@ class ResultFile:
         match = ResultFile.FILENAME_REGEX.match(basename)
         return (
             ResultFile(
+                suite=match.group("suite"),
                 benchmark=match.group("benchmark"),
                 run_id=match.group("run_id"),
                 type=match.group("type"),
@@ -258,6 +270,7 @@ class ResultFile:
 
     def __init__(
         self,
+        suite: str,
         benchmark: str,
         run_id: int,
         type: Type,
@@ -266,6 +279,7 @@ class ResultFile:
         result_file: str,
         result_path: str = None,  # set by parse method only
     ):
+        self.suite = suite
         self.benchmark = benchmark
         self.run_id = run_id
         self.type = type
@@ -274,5 +288,8 @@ class ResultFile:
         self.result_file = result_file
         self.result_path = result_path
 
+    def __repr__(self):
+        return f"ResultFile({self.__dict__}"
+
     def filename(self):
-        return f"{self.benchmark}.{self.run_id}.{self.type.value}.{self.run_order}.{self.pair}.{self.result_file}"
+        return f"{self.suite}.{self.benchmark}.{self.run_id}.{self.type.value}.{self.run_order}.{self.pair}.{self.result_file}"

@@ -110,9 +110,7 @@ class Benchmark:
         assert self.async_handle is not None
         self.runner.wait_async(self.async_handle)
 
-    def get_results(
-        self, results_dir: str, benchmark: str, run_id: int, type: Type, run_order: str
-    ):
+    def get_results(self, results_dir: str, run_id: int, type: Type, run_order: str):
         for remote_result_path in self.config.result_files:
             # Since docker cp cannot rename the file (remote_result_path), we first copy the file
             # (local_tmp_path) and then rename it (local_result_path).
@@ -130,7 +128,8 @@ class Benchmark:
             )
 
             result_file = ResultFile(
-                benchmark,
+                self.config.suite,
+                self.config.benchmark,
                 run_id,
                 type,
                 run_order,
@@ -168,7 +167,7 @@ class DuetBenchmark:
         self.b.start_instance()
 
         self.logger.info(
-            f"Run duet: {self.config.name}, "
+            f"Run duet: {self.config.benchmark}, "
             f"type: {self.config.type}, "
             f"repetitions: {self.config.repetitions}, "
             f"repetitions_type: {self.config.repetitions_type}"
@@ -180,7 +179,7 @@ class DuetBenchmark:
 
         if self.config.sequential_repetitions > 0:
             self.logger.info(
-                f"Run sequential: {self.config.name}, "
+                f"Run sequential: {self.config.benchmark}, "
                 f"repetitions: {self.config.sequential_repetitions}, "
                 f"repetitions_type: {self.config.sequential_repetitions_type}"
             )
@@ -222,14 +221,12 @@ class DuetBenchmark:
         )
         self.a.get_results(
             self.results_dir,
-            self.config.name,
             run_id,
             Type.DUET,
             DuetBenchmark.run_order_str(run_order),
         )
         self.b.get_results(
             self.results_dir,
-            self.config.name,
             run_id,
             Type.DUET,
             DuetBenchmark.run_order_str(run_order),
@@ -245,14 +242,12 @@ class DuetBenchmark:
         )
         self.a.get_results(
             self.results_dir,
-            self.config.name,
             run_id,
             Type.SEQUENTIAL,
             DuetBenchmark.run_order_str(run_order),
         )
         self.b.get_results(
             self.results_dir,
-            self.config.name,
             run_id,
             Type.SEQUENTIAL,
             DuetBenchmark.run_order_str(run_order),
@@ -302,7 +297,7 @@ def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger
         results_dir = outdir
     else:
         time_tag = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        results_dir = f"results.{config.name}.{time_tag}"
+        results_dir = f"results.{config.suite}.{time_tag}"
 
     try:
         os.makedirs(f"{results_dir}/{ARTIFACTS_DIR}")
@@ -340,21 +335,21 @@ def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
 
 def run_duets(config: DuetBenchConfig, results_dir: str, logger):
     for duet_config in config.duets:
-        logger.info(f"DuetBenchmark `{duet_config.name}`")
+        logger.info(f"DuetBenchmark `{duet_config.benchmark}`")
         duet = None
         try:
             duet = DuetBenchmark(
-                duet_config, results_dir, logging.getLogger(duet_config.name)
+                duet_config, results_dir, logging.getLogger(duet_config.benchmark)
             )
             duet.run()
         except RuntimeError as e:
-            logger.error(f"Duet `{duet_config.name}` failed with exception: {e}")
+            logger.error(f"Duet `{duet_config.benchmark}` failed with exception: {e}")
             traceback.print_exc()
         except RuntimeWarning as e:
-            logger.warning(f"Duet `{duet_config.name}` issued warning: {e}")
+            logger.warning(f"Duet `{duet_config.benchmark}` issued warning: {e}")
             traceback.print_exc()
         except Exception as e:
-            logger.critical(f"Duet `{duet_config.name}` unexpected exception: {e}")
+            logger.critical(f"Duet `{duet_config.benchmark}` unexpected exception: {e}")
             traceback.print_exc()
         finally:
             if duet:

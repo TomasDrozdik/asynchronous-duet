@@ -40,7 +40,7 @@ Example: [renaissance duet YAML config](./benchmarks/renaissance/duet.yml)
 
 ``` yml
 duetbench:
-  name: renaissance                 # name of the duet benchmark
+  suite: renaissance                # name of the benchmark suite - used for parsing results
   verbose: true                     # debug logging
   seed: 42                          # seed for repetitions
   docker_command: podman            # command to invoke docker in shell, default is docker
@@ -116,7 +116,7 @@ Ideally use python virtual environment
 
 > If using `zsh` shell you need to escape first '[' i.e. `pip install .\[all]`
 
-This should install scripts `duetbench.py` and `process_renaissance.py` as well as dependencies for [`analyze.ipynb`](./duet/analyze.ipynb).
+This should install scripts `duetbench.py` and `duetprocess.py` as well as dependencies for [`analyze.ipynb`](./duet/analyze.ipynb).
 
 Running:
 ```
@@ -141,17 +141,27 @@ Once you have the tools installed, config read, and docker image built it is as 
 
 Logging should give you an idea of what is going on, it also logs all the outputs from the benchmarks themselves so you can examine that as well.
 
-Results will be in output directory of with format like `results.renaissance.20220413-115622` where `renaissance` is the name of the duet from config and it is followed by timestamp.
+Results will be in an output directory of this format: `results.renaissance.20220413-115622` where `renaissance` is the name of the duet from config and it is followed by timestamp.
 
-Results themselves have fixed naming schema `<benchmark_name>.<run_id>.<run_type>.<results_file_from_config>`.
+Results themselves have fixed naming schema `<suite_name>.<benchmark_name>.<run_id>.<run_order>.<run_type>.<results_file_from_config>`.
 Example results directory in the repo [`results.renaissance.test\`](./results.renaissance.test/)
 ```
-(venv)$ ls -lh results.renaissance.test
-total 48K
--rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.0.A.results.json
--rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.0.B.results.json
--rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.1.A.results.json
--rwxrwxrwx 1 root root 8.4K Mar 20 12:17 chi-square.1.B.results.json
+(venv) *[feature/duet2][~/d/school/thesis-master/asynchronous-duet]$ ls -lRh results.renaissance.test
+results.renaissance.test:
+total 36K
+drwxrwxrwx 1 root root 4.0K May 15 18:49 artifacts
+-rwxrwxrwx 1 root root 7.7K May 15 18:49 renaissance.chi-square.0.duet.AB.A.results.json
+-rwxrwxrwx 1 root root 7.8K May 15 18:49 renaissance.chi-square.0.duet.AB.B.results.json
+-rwxrwxrwx 1 root root 7.7K May 15 18:50 renaissance.chi-square.1.duet.BA.A.results.json
+-rwxrwxrwx 1 root root 7.7K May 15 18:50 renaissance.chi-square.1.duet.BA.B.results.json
+
+results.renaissance.test/artifacts:
+total 9.5K
+-rwxrwxrwx 1 root root   33 May 15 18:49 date
+-rwxrwxrwx 1 root root    7 May 15 18:49 hostname
+-rwxrwxrwx 1 root root 2.6K May 15 18:49 lscpu
+-rwxrwxrwx 1 root root 1.5K May 15 18:49 meminfo
+-rwxrwxrwx 1 root root   93 May 15 18:49 uname
 ```
 
 This fixed naming schema is utilized later in processing.
@@ -168,26 +178,28 @@ To compare them results need to be unified.
 * _wallclock end_ of an inner harness iteration
 
 Renaissance suite does not give this to us directly, but it is fairly easy to calculate that.
-For renaissance specifically, there is [`process_renaissance.py`](./duet/process_renaissance.py) that does exactly that given you've installed via pip you already have it available:
+For renaissance specifically, there is [`duetprocess.py`](./duet/duetprocess.py) that does exactly that given you've installed via pip you already have it available:
 ```
-(venv)$ process_renaissance --help
-usage: process_renaissance [-h] -c CONFIG [-o OUTPUT] results
+(venv)$ duetprocess --help
+usage: duetprocess [-h] -c CONFIG [-o OUTPUT] [--json | --csv] results [results ...]
 
 positional arguments:
-  results               Results directory of Renaissance Duet
+  results               Results directory
 
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
-                        Duet config file
+                        YAML config file for the duet benchmark
   -o OUTPUT, --output OUTPUT
-                        Output results.csv file, default <results_dir_name>.csv
+                        Output file
+  --json                Serialize DataFrame to JSON
+  --csv                 Serialize DataFrame to CSV (default)
 ```
 
 As you can see it requires config file of that duet and its results directory, it creates single results CSV file.
 For example:
 ```
-(venv)$ process_renaissance --config ./benchmarks/renaissance/duet.yml --output results.renaissance.test.csv results.renaissance.test
+(venv)$ duetprocess --config ./benchmarks/renaissance/duet.yml --output results.renaissance.test.csv results.renaissance.test
 Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.0.A.results.json, runid: 0, pair: A, total_iterations: 10
 Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.0.B.results.json, runid: 0, pair: B, total_iterations: 10
 Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.1.A.results.json, runid: 1, pair: A, total_iterations: 10
@@ -195,21 +207,21 @@ Apr 13 13:58:43  root                 INFO      Processed file: results.renaissa
 Apr 13 13:58:43  root                 INFO      Write results to: results.renaissance.test.csv
 ```
 
-**Unified Results CSV format**
+**Results schema**
 
-| Field             | Description                                           |
-| ----------------- | ----------------------------------------------------- |
-| benchmark         | benchmark name                                        |
-| runid             | run number of one A/B duet                            |
-| pair              | type - A or B                                         |
-| epoch_start_ms    | start of the run in wallclock time                    |
-| iteration_time_ns | time per single internall iteration in harness        |
-| machine           | machine this ran on e.g. localhost, EC2 instance name |
-| provider          | provider name e.g. AWS, localhost                     |
-| jdk               | JDK name                                              |
-| jdk_version       | JDK version                                           |
-
-> Some benchmarks might have another "score" metric number e.g. how many things it managed to do instead of just time of iteration, in those cases we might add another field.
+| Field                | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| suite                | suite name                                     |
+| benchmark            | benchmark name                                 |
+| runid                | run number of one A/B duet                     |
+| iteration            | internal harness iteartion number              |
+| pair                 | type - A or B                                  |
+| order                | order - AB/BA                                  |
+| epoch_start_ms       | start of the run in wallclock time             |
+| iteration_time_ns    | time per single internall iteration in harness |
+| iteration_start_ns   | time per single internall iteration in harness |
+| iteration_end_ns     | time per single internall iteration in harness |
+| *artifact_resuls*... | any artifact value can be parsed and included  |
 
 
 ## Interpret results
