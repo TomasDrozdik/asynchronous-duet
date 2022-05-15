@@ -16,7 +16,7 @@
 
 
 duetbench:
-  name: renaissance
+  suite: renaissance
   verbose: false
   seed: 42
   docker_command: docker
