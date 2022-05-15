@@ -1,5 +1,5 @@
 duetbench:
-  name: renaissance
+  suite: renaissance
   verbose: false
   seed: 42
 
@@ -16,6 +16,8 @@ duetbench:
     - /duet/results
 
   artifacts:
+    date: date
+    hostname: hostname
     uname: uname -a
     lscpu: lscpu
     meminfo: cat /proc/meminfo
@@ -25,6 +27,7 @@ duetbench:
     - chi-square
 
 debug:
+  suite: debug
   repetitions: 4
   A:
     run: echo RunningA > /duet/results
@@ -37,4 +40,4 @@ chi-square:
   results:
     - /duet/results.json
   A:
-    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 10 chi-square
+    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 4 chi-square

@@ -13,7 +13,7 @@
 
 
 duetbench:
-  name: renaissance
+  suite: renaissance
   verbose: false
   seed: 42
   docker_command: docker
@@ -26,6 +26,8 @@ duetbench:
   sequential_repetitions_type: swap
 
   artifacts:
+    date: date
+    hostname: hostname
     uname: uname -a
     lscpu: lscpu
     meminfo: cat /proc/meminfo
