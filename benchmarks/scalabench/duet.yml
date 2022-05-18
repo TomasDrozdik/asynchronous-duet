@@ -1,0 +1,172 @@
+# Scalabench duet config
+#
+# Each test runs with the following JVM config:
+#
+# Memory 1.5G, quater for young generation:
+# -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
+#
+# Restrains heap-configuration self adaptation
+# -XX:SurvivorRatio=4
+# -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
+# -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
+# -XX:+UseParallelGC -XX:+UseParallelOldGC
+
+
+duetbench:
+  suite: scalabench
+  verbose: false
+  seed: 42
+  docker_command: docker
+
+  remove_containers: true
+  duet_repetitions: 2
+  sequential_repetitions: 2
+
+  artifacts:
+    date: date
+    hostname: hostname
+    uname: uname -a
+    lscpu: lscpu
+    meminfo: cat /proc/meminfo
+
+  image: scalabench
+
+  results:
+    - /duet/results.csv
+
+  duets:
+    #- actors
+    - apparat
+    - avrora
+    #- batik
+    - dummy
+    #- eclipse
+    - factorie
+    - fop
+    - h2
+    - jython
+    - kiama
+    - luindex
+    - lusearch
+    - pmd
+    - scalac
+    - scaladoc
+    - scalap
+    - scalariform
+    - scalatest
+    - scalaxb
+    - specs
+    - sunflow
+    - tmt
+    #- tomcat
+    - tradebeans
+    - tradesoap
+    - xalan
+
+actors:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv actors
+
+apparat:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv apparat
+
+avrora:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv avrora
+
+batik:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv batik
+
+dummy:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv dummy
+
+eclipse:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv eclipse
+
+factorie:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv factorie
+
+fop:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv fop
+
+h2:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv h2
+
+jython:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv jython
+
+kiama:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv kiama
+
+luindex:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv luindex
+
+lusearch:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv lusearch
+
+pmd:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv pmd
+
+scalac:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv scalac
+
+scaladoc:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv scaladoc
+
+scalap:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv scalap
+
+scalariform:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv scalariform
+
+scalatest:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv scalatest
+
+scalaxb:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv scalaxb
+
+specs:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv specs
+
+sunflow:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv sunflow
+
+tmt:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv tmt
+
+tomcat:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv tomcat
+
+tradebeans:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv tradebeans
+
+tradesoap:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv tradesoap
+
+xalan:
+  A:
+    run: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar -n 30 -o results.csv xalan
