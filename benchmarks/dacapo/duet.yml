@@ -1,0 +1,110 @@
+# Dacapo duet config
+#
+# Each test runs with the following JVM config:
+#
+# Memory 1.5G, quater for young generation:
+# -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
+#
+# Restrains heap-configuration self adaptation
+# -XX:SurvivorRatio=4
+# -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
+# -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
+# -XX:+UseParallelGC -XX:+UseParallelOldGC
+
+
+duetbench:
+  suite: dacapo
+  verbose: false
+  seed: 42
+  docker_command: docker
+
+  remove_containers: true
+  repetitions: 1
+  repetitions_type: swap
+
+  sequential_repetitions: 0
+  sequential_repetitions_type: swap
+
+  artifacts:
+    date: date
+    hostname: hostname
+    uname: uname -a
+    lscpu: lscpu
+    meminfo: cat /proc/meminfo
+
+  image: dacapo
+
+  results:
+    - /duet/scratch
+
+  duets:
+    - avrora
+    - batik
+    - eclipse
+    - fop
+    - h2
+    - jython
+    - luindex
+    - lusearch
+    - pmd
+    - sunflow
+    - tomcat
+    - tradebeans
+    - tradesoap
+    - xalan
+
+avrora:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar avrora
+
+batik:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar batik
+
+eclipse:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar eclipse
+
+fop:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar fop
+
+h2:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar h2
+
+jython:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar jython
+
+luindex:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar luindex
+
+lusearch:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar lusearch
+
+pmd:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar pmd
+
+sunflow:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar sunflow
+
+tomcat:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar tomcat
+
+tradebeans:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar tradebeans
+
+tradesoap:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar tradesoap
+
+xalan:
+  A:
+    run: java -jar dacapo-9.12-d3s.jar xalan

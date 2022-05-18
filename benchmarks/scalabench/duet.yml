@@ -1,0 +1,175 @@
+# Dacapo duet config
+#
+# Each test runs with the following JVM config:
+#
+# Memory 1.5G, quater for young generation:
+# -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
+#
+# Restrains heap-configuration self adaptation
+# -XX:SurvivorRatio=4
+# -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
+# -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
+# -XX:+UseParallelGC -XX:+UseParallelOldGC
+
+
+duetbench:
+  suite: scalabench
+  verbose: false
+  seed: 42
+  docker_command: docker
+
+  remove_containers: true
+  repetitions: 1
+  repetitions_type: swap
+
+  sequential_repetitions: 0
+  sequential_repetitions_type: swap
+
+  artifacts:
+    date: date
+    hostname: hostname
+    uname: uname -a
+    lscpu: lscpu
+    meminfo: cat /proc/meminfo
+
+  image: scalabench
+
+  results:
+    - /duet/scratch
+
+  duets:
+    - actors
+    - apparat
+    - avrora
+    - batik
+    - dummy
+    - eclipse
+    - factorie
+    - fop
+    - h2
+    - jython
+    - kiama
+    - luindex
+    - lusearch
+    - pmd
+    - scalac
+    - scaladoc
+    - scalap
+    - scalariform
+    - scalatest
+    - scalaxb
+    - specs
+    - sunflow
+    - tmt
+    - tomcat
+    - tradebeans
+    - tradesoap
+    - xalan
+
+actors:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar actors
+
+apparat:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar apparat
+
+avrora:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar avrora
+
+batik:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar batik
+
+dummy:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar dummy
+
+eclipse:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar eclipse
+
+factorie:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar factorie
+
+fop:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar fop
+
+h2:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar h2
+
+jython:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar jython
+
+kiama:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar kiama
+
+luindex:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar luindex
+
+lusearch:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar lusearch
+
+pmd:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar pmd
+
+scalac:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar scalac
+
+scaladoc:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar scaladoc
+
+scalap:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar scalap
+
+scalariform:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar scalariform
+
+scalatest:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar scalatest
+
+scalaxb:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar scalaxb
+
+specs:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar specs
+
+sunflow:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar sunflow
+
+tmt:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar tmt
+
+tomcat:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar tomcat
+
+tradebeans:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar tradebeans
+
+tradesoap:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar tradesoap
+
+xalan:
+  A:
+    java -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar xalan
