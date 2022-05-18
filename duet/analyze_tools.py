@@ -30,7 +30,7 @@ def compute_overlaps(df_iterations: pd.DataFrame):
     return df_overlap
 
 
-def overlapplot(xstart, xend, ycategory, data=None, hue=None, palette=None, **kwargs):
+def overlapplot(xstart, xend, ycategory, data=None, hue=None, palette=None):
     # Load data
     start = "start"
     end = "end"
@@ -55,44 +55,48 @@ def overlapplot(xstart, xend, ycategory, data=None, hue=None, palette=None, **kw
             lambda x: (x, palette[unique_hue.index(x)])
         )
     else:
-        df_intervals = df_intervals.melt(
-            id_vars=["category"],
+        df_overlaps = df_intervals.melt(
+            id_vars=[cat],
             var_name="type",
             value_vars=[start, end],
             value_name="time",
         )
-        df_intervals["value"] = np.select(
-            [df_intervals["type"] == start, df_intervals["type"] == end], [0, -1]
+        df_overlaps["value"] = np.select(
+            [df_overlaps["type"] == start, df_overlaps["type"] == end], [1, -1]
         )
-        df_intervals["overlaps"] = (
-            df_intervals.sort_values(by=["category", "time"])
-            .groupby("category")["value"]
-            .cumsum()
+        df_overlaps["overlaps"] = (
+            df_overlaps.sort_values(by=[cat, "time"]).groupby(cat)["value"].cumsum()
         )
-        df_intervals[start] = df_intervals["time"]
-        df_intervals[end] = (
-            df_intervals.sort_values(by=["category", "time"])
-            .groupby("category")["time"]
-            .shift(-2, fill_value=None)
-        )
-        df_intervals.dropna(inplace=True)
-        df_intervals.drop(
-            df_intervals[df_intervals["overlaps"] == -1].index, inplace=True
+        df_overlaps[start] = df_overlaps["time"]
+        df_overlaps[end] = (
+            df_overlaps.sort_values(by=[cat, "time"])
+            .groupby(cat)["time"]
+            .shift(-1, fill_value=None)
         )
 
-        palette = palette if palette else sns.color_palette("rocket", as_cmap=True)
-        df_intervals[label_color] = df_intervals["overlaps"].apply(
-            lambda x: (x, palette[x])
+        df_overlaps.dropna(inplace=True)
+        df_overlaps.drop(df_overlaps[df_overlaps["overlaps"] == 0].index, inplace=True)
+
+        unique_hue = list(df_overlaps["overlaps"].unique())
+        palette = palette if palette else sns.color_palette("rocket", len(unique_hue))
+        df_overlaps[label_color] = df_overlaps["overlaps"].apply(
+            lambda x: (x, palette[unique_hue.index(x)])
         )
 
-    # Plot boxes (horizontal bars)
+        # Pass back to intervals since the format is kept
+        df_intervals = df_overlaps
+
+    # Filter nonzero ranges
+    df_intervals = df_intervals[df_intervals[start] < df_intervals[end]]
+
+    # Horizontal bars require xrange tuple in format (x_start, x_length)
     df_intervals["xrange"] = df_intervals.apply(
         lambda row: (row[start], row[end] - row[start]), axis=1
     )
 
     yheight = 1
     yheight_shrink = yheight * 0.2
-    fig, ax = plt.subplots(**kwargs)
+    ax = plt.gca()
     for label, color in df_intervals[label_color].unique():
         for category_idx, category in enumerate(categories):
             xranges = df_intervals[
@@ -110,11 +114,14 @@ def overlapplot(xstart, xend, ycategory, data=None, hue=None, palette=None, **kw
             )
 
     # Create legend
-    legend_elements = [
-        matplotlib.patches.Patch(facecolor=x[1], label=x[0])
-        for x in df_intervals[label_color].unique()
-    ]
-    ax.legend(handles=legend_elements)
+    if len(unique_hue) > 10 and hue is None:
+        pass
+    else:
+        legend_elements = [
+            matplotlib.patches.Patch(facecolor=x[1], label=x[0])
+            for x in df_intervals[label_color].unique()
+        ]
+        ax.legend(handles=legend_elements)
 
     ax.set_yticks(
         [
