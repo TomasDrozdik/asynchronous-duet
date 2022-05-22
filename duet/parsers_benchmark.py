@@ -24,11 +24,12 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
                     "benchmark": benchmark,
                     "runid": result_file.run_id,
                     "iteration": iteration,
-                    "type": result_file.type,
+                    "type": result_file.type.value,
                     "pair": result_file.pair,
                     "order": result_file.run_order,
                     "epoch_start_ms": vm_start_ms,
-                    "iteration_time_ns": iteration_data["duration_ns"],
+                    "iteration_duration_ns": iteration_data["duration_ns"],
+                    "uptime_ns": iteration_data["uptime_ns"],
                     # TODO: Figure out what to put in the following fields
                     # "jdk": results_json["environment"]["jre"]["name"],
                     # "jdk_version": results_json["environment"]["jre"]["version"],
@@ -44,4 +45,7 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
                 }
             )
 
-    return pd.DataFrame(results)
+    df = pd.DataFrame(results)
+    df["iteration_start_ns"] = (df["epoch_start_ms"] * 1_000_000) + df["uptime_ns"]
+    df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
+    return df

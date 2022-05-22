@@ -33,6 +33,19 @@ ARTIFACT_PARSERS = {
 }
 
 
+REQUIRED_SCHEMA = set(
+    [
+        "suite",
+        "benchmark",
+        "type",
+        "runid",
+        "iteration",
+        "iteration_start_ns",
+        "iteration_end_ns",
+    ]
+)
+
+
 class SerializeEnum(Enum):
     JSON = "json"
     CSV = "csv"
@@ -43,7 +56,7 @@ def process_results(results, config: DuetBenchConfig) -> pd.DataFrame:
     for result in results:
         try:
             result_df = process_result(result, config, logging.getLogger(result))
-            result_df = compute_iteration_duration(result_df)
+            assert set(result_df.columns).issuperset(REQUIRED_SCHEMA)
         except Exception:
             logging.error(f"Processing results {result} failed with exception.")
             traceback.print_exc()
@@ -102,25 +115,6 @@ def parse_artifacts(artifacts_dir: str, duet_config: DuetBenchConfig, logger):
                     f"Found artifact {file} but there is no registered parser for it"
                 )
     return parsed_artifacts
-
-
-def compute_iteration_duration(results: pd.DataFrame) -> pd.DataFrame:
-    results["iteration_start_ns"] = results.groupby(
-        ["benchmark", "runid", "type", "pair"]
-    )["iteration_time_ns"].transform(pd.Series.cumsum)
-
-    results["iteration_start_ns"] = results.groupby(
-        ["benchmark", "runid", "type", "pair"]
-    )["iteration_start_ns"].shift(1, fill_value=0)
-
-    results["iteration_start_ns"] = (
-        results["iteration_start_ns"] + results["epoch_start_ms"] * 1_000_000
-    )
-
-    results["iteration_end_ns"] = (
-        results["iteration_start_ns"] + results["iteration_time_ns"]
-    )
-    return results
 
 
 def store_results(result_df: pd.DataFrame, output: str, format: SerializeEnum):
