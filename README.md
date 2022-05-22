@@ -141,10 +141,7 @@ Once you have the tools installed, config read, and docker image built it is as 
 
 Logging should give you an idea of what is going on, it also logs all the outputs from the benchmarks themselves so you can examine that as well.
 
-Results will be in an output directory of this format: `results.renaissance.20220413-115622` where `renaissance` is the name of the duet from config and it is followed by timestamp.
-
 Results themselves have fixed naming schema `<suite_name>.<benchmark_name>.<run_id>.<run_order>.<run_type>.<results_file_from_config>`.
-Example results directory in the repo [`results.renaissance.test\`](./results.renaissance.test/)
 ```
 (venv) *[feature/duet2][~/d/school/thesis-master/asynchronous-duet]$ ls -lRh results.renaissance.test
 results.renaissance.test:
@@ -199,7 +196,7 @@ optional arguments:
 As you can see it requires config file of that duet and its results directory, it creates single results CSV file.
 For example:
 ```
-(venv)$ duetprocess --config ./benchmarks/renaissance/duet.yml --output results.renaissance.test.csv results.renaissance.test
+(venv)$ duetprocess --config ./benchmarks/renaissance/duet.yml --output results.renaissance.test results.renaissance.test
 Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.0.A.results.json, runid: 0, pair: A, total_iterations: 10
 Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.0.B.results.json, runid: 0, pair: B, total_iterations: 10
 Apr 13 13:58:43  root                 INFO      Processed file: results.renaissance.test/chi-square.1.A.results.json, runid: 1, pair: A, total_iterations: 10
@@ -227,8 +224,6 @@ Apr 13 13:58:43  root                 INFO      Write results to: results.renais
 ## Interpret results
 
 Then to interpret the unified results format there is [analyze notebook](./duet/analyze.ipynb).
-There is some sample results data present in [results.renaissance.test](./results.renaissance.test.csv) and the notebook points to it directly.
-
 
 ## Development setup
 
