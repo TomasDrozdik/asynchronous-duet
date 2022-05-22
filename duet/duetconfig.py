@@ -161,7 +161,7 @@ class DuetConfig:
             return self.config[key]
         elif key in self.duetbenchconfig:
             return self.duetbenchconfig[key]
-        elif default:
+        elif default is not None:
             return default
         else:
             raise ConfigException(f"{self} can't inherit {key}")
@@ -258,7 +258,7 @@ class ResultFile:
                 suite=match.group("suite"),
                 benchmark=match.group("benchmark"),
                 run_id=match.group("run_id"),
-                type=match.group("type"),
+                type=Type(match.group("type")),
                 run_order=match.group("run_order"),
                 pair=match.group("pair"),
                 result_file=match.group("result_file"),
@@ -289,7 +289,7 @@ class ResultFile:
         self.result_path = result_path
 
     def __repr__(self):
-        return f"ResultFile({self.__dict__}"
+        return f"ResultFile({self.filename()})"
 
     def filename(self):
         return f"{self.suite}.{self.benchmark}.{self.run_id}.{self.type.value}.{self.run_order}.{self.pair}.{self.result_file}"
