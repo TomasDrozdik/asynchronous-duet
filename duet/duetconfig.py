@@ -10,15 +10,19 @@ class DuetBenchType(enum.Enum):
     AA = "A-A"
 
 
+class DuetOrder(enum.Enum):
+    AB = "AB"
+    BA = "BA"
+
+
 class Pair(enum.Enum):
     A = "A"
     B = "B"
 
 
-class RepetititionType(enum.Enum):
-    IN_ORDER = "in_order"
-    RANDOM = "random"
-    SWAP = "swap"
+class Schedule(enum.Enum):
+    SEQUENTIAL = "sequential"
+    RANDOMIZED_INTERLEAVING_TRIALS = "randomized_interleaving_trials"
 
 
 class Type(enum.Enum):
@@ -97,10 +101,8 @@ class DuetConfig:
     VALUES = [
         "suite",
         "remove_containers",
-        "repetitions",
-        "repetitions_type",
+        "duet_repetitions",
         "sequential_repetitions",
-        "sequential_repetitions_type",
     ] + BenchmarkConfig.VALUES
 
     def __init__(self, benchmark: str, config: dict, duetbenchconfig):
@@ -120,20 +122,10 @@ class DuetConfig:
             "remove_containers", default=True
         )
 
-        self.repetitions: int = self.get_or_inherit("repetitions", default=1)
-
-        self.repetitions_type = RepetititionType(
-            self.get_or_inherit("repetitions_type", default=RepetititionType.SWAP.value)
-        )
+        self.duet_repetitions: int = self.get_or_inherit("duet_repetitions", default=1)
 
         self.sequential_repetitions: int = self.get_or_inherit(
             "sequential_repetitions", default=0
-        )
-
-        self.sequential_repetitions_type = RepetititionType(
-            self.get_or_inherit(
-                "sequential_repetitions_type", default=RepetititionType.SWAP.value
-            )
         )
 
         self.type = (
@@ -171,7 +163,15 @@ class DuetConfig:
 
 
 class DuetBenchConfig:
-    UNIQUE_VALUES = ["suite", "verbose", "seed", "docker_command", "duets", "artifacts"]
+    UNIQUE_VALUES = [
+        "suite",
+        "verbose",
+        "seed",
+        "docker_command",
+        "duets",
+        "artifacts",
+        "schedule",
+    ]
     VALUES = DuetConfig.VALUES
 
     def __init__(self, config_filename):
@@ -194,6 +194,10 @@ class DuetBenchConfig:
         self.docker_command: str = self.duetbenchconfig.get("docker_command")
 
         self.duet_names: List[str] = self.duetbenchconfig["duets"]
+
+        self.scheduling: Schedule = Schedule(
+            self.duetbenchconfig.get("schedule", Schedule.SEQUENTIAL.value)
+        )
 
         self.artifacts: dict = (
             self.duetbenchconfig["artifacts"]
@@ -246,7 +250,7 @@ class DuetBenchConfig:
 
 class ResultFile:
     FILENAME_REGEX = re.compile(
-        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<run_id>\d+)\.(?P<type>duet|sequential)\.(?P<run_order>[AB]+)\.(?P<pair>[AB])\.(?P<result_file>.*)"
+        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<type>duet|sequential)\.(?P<duet_order>[a-zA-Z0-9_-]+)\.(?P<pair>[AB])\.(?P<result_file>.*)"
     )
 
     @staticmethod
@@ -257,9 +261,9 @@ class ResultFile:
             ResultFile(
                 suite=match.group("suite"),
                 benchmark=match.group("benchmark"),
-                run_id=match.group("run_id"),
+                runid=match.group("runid"),
                 type=Type(match.group("type")),
-                run_order=match.group("run_order"),
+                duet_order=match.group("duet_order"),
                 pair=match.group("pair"),
                 result_file=match.group("result_file"),
                 result_path=result_path,
@@ -272,18 +276,18 @@ class ResultFile:
         self,
         suite: str,
         benchmark: str,
-        run_id: int,
+        runid: int,
         type: Type,
-        run_order: str,
+        duet_order: str,
         pair: str,
         result_file: str,
         result_path: str = None,  # set by parse method only
     ):
         self.suite = suite
         self.benchmark = benchmark
-        self.run_id = run_id
+        self.runid = runid
         self.type = type
-        self.run_order = run_order
+        self.duet_order = duet_order
         self.pair = pair
         self.result_file = result_file
         self.result_path = result_path
@@ -292,4 +296,4 @@ class ResultFile:
         return f"ResultFile({self.filename()})"
 
     def filename(self):
-        return f"{self.suite}.{self.benchmark}.{self.run_id}.{self.type.value}.{self.run_order}.{self.pair}.{self.result_file}"
+        return f"{self.suite}.{self.benchmark}.{self.runid}.{self.type.value}.{self.duet_order}.{self.pair}.{self.result_file}"

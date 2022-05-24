@@ -22,11 +22,11 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
                 {
                     "suite": result_file.suite,
                     "benchmark": benchmark,
-                    "runid": result_file.run_id,
+                    "runid": result_file.runid,
                     "iteration": iteration,
                     "type": result_file.type.value,
                     "pair": result_file.pair,
-                    "order": result_file.run_order,
+                    "order": result_file.duet_order,
                     "epoch_start_ms": vm_start_ms,
                     "iteration_duration_ns": iteration_data["duration_ns"],
                     "uptime_ns": iteration_data["uptime_ns"],

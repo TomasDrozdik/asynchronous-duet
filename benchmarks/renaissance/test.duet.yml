@@ -22,7 +22,7 @@ duetbench:
   docker_command: docker
 
   remove_containers: true
-  repetitions: 1
+  duet_repetitions: 1
 
   artifacts:
     uname: uname -a
