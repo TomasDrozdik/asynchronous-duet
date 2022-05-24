@@ -19,8 +19,6 @@ duetbench:
   docker_command: docker
 
   remove_containers: true
-  repetitions: 1
-  repetitions_type: swap
 
   duet_repetitions: 2
   sequential_repetitions: 2

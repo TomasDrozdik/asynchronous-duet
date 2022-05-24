@@ -15,8 +15,10 @@ from duet.duetconfig import (
     BenchmarkConfig,
     DuetBenchConfig,
     DuetConfig,
-    RepetititionType,
+    DuetOrder,
+    Pair,
     ResultFile,
+    Schedule,
     Type,
 )
 
@@ -79,13 +81,12 @@ class Runner:
             for line in stdout.decode("utf-8").splitlines():
                 line = line.strip()
                 if line:
-                    self.logger.info(line)
+                    self.logger.info(">    " + line)
         if stderr:
             for line in stderr.decode("utf-8").strip().splitlines():
                 line = line.strip()
                 if line:
-                    self.logger.debug(line)
-                self.logger.warning(line)
+                    self.logger.warning(">     " + line)
 
 
 class Benchmark:
@@ -110,7 +111,7 @@ class Benchmark:
         assert self.async_handle is not None
         self.runner.wait_async(self.async_handle)
 
-    def get_results(self, results_dir: str, run_id: int, type: Type, run_order: str):
+    def get_results(self, results_dir: str, runid: int, type: Type, duet_order: str):
         for remote_result_path in self.config.result_files:
             # Since docker cp cannot rename the file (remote_result_path), we first copy the file
             # (local_tmp_path) and then rename it (local_result_path).
@@ -130,9 +131,9 @@ class Benchmark:
             result_file = ResultFile(
                 self.config.suite,
                 self.config.benchmark,
-                run_id,
+                runid,
                 type,
-                run_order,
+                duet_order,
                 pair=self.config.pair.value,
                 result_file=filename,
             )
@@ -152,144 +153,138 @@ class Benchmark:
                 self.logger.warn(f"Cleanup rm hit exception: {e}")
 
 
-class DuetBenchmark:
-    def __init__(self, config: DuetConfig, results_dir: str, logger):
+class SequentialBenchmarkRunner:
+    def __init__(self, config: DuetConfig, results_dir: str, runid: int, pair: Pair):
+        self.config = config
+        self.results_dir = results_dir
+        self.runid = runid
+
+        benchmark_config = self.config.a if pair == Pair.A else self.config.b
+        self.benchmark = Benchmark(
+            benchmark_config, logging.getLogger(self.config.a.container)
+        )
+
+        self.logger = logging.getLogger(str(self))
+
+    def run(self):
+        self.logger.info(f"{self} RUN")
+        self.benchmark.start_instance()
+        self.benchmark.run_async()
+        self.benchmark.wait()
+
+        self.logger.info(f"{self} RESULTS")
+        self.benchmark.get_results(
+            self.results_dir, self.runid, Type.SEQUENTIAL, duet_order=None
+        )
+
+    def cleanup(self):
+        self.logger.info(f"{self} CLEANUP")
+        self.benchmark.cleanup(self.config.remove_containers)
+
+    def __str__(self):
+        return f"seqn:{self.config.benchmark}:{self.runid}"
+
+
+class DuetBenchmarkRunner:
+    def __init__(
+        self, config: DuetConfig, results_dir: str, runid: int, duet_order: DuetOrder
+    ):
+        self.config = config
+        self.results_dir = results_dir
+        self.runid = runid
+        self.duet_order = duet_order
+
+        self.a = Benchmark(config.a, logging.getLogger(config.a.container))
+        self.b = Benchmark(config.b, logging.getLogger(config.b.container))
+
+        self.logger = logging.getLogger(str(self))
+
+    def run(self):
+        self.logger.info(f"{self} RUN")
+        self.a.start_instance()
+        self.b.start_instance()
+
+        if self.duet_order == DuetOrder.AB:
+            self.a.run_async()
+            self.b.run_async()
+        elif self.duet_order == DuetOrder.BA:
+            self.b.run_async()
+            self.a.run_async()
+        else:
+            raise NotImplementedError()
+
+        self.a.wait()
+        self.b.wait()
+
+        self.logger.info(f"{self} GET")
+        for benchmark in [self.a, self.b]:
+            benchmark.get_results(
+                self.results_dir, self.runid, Type.DUET, self.duet_order.value
+            )
+
+    def cleanup(self):  # nothrow
+        self.logger.info(f"{self} CLEANUP")
+        for benchmark in [self.a, self.b]:
+            benchmark.cleanup(self.config.remove_containers)
+
+    def __str__(self):
+        return f"duet:{self.config.benchmark}:{self.runid}"
+
+
+class Harness:
+    def __init__(self, config: DuetBenchConfig, results_dir: str, logger):
         self.config = config
         self.results_dir = results_dir
         self.logger = logger
 
-        self.a = Benchmark(self.config.a, logging.getLogger(self.config.a.container))
-        self.b = Benchmark(self.config.b, logging.getLogger(self.config.b.container))
-
     def run(self):
-        self.logger.info("Start duet instances")
-        self.a.start_instance()
-        self.b.start_instance()
+        plan = self.plan()
 
-        self.logger.info(
-            f"Run duet: {self.config.benchmark}, "
-            f"type: {self.config.type}, "
-            f"repetitions: {self.config.repetitions}, "
-            f"repetitions_type: {self.config.repetitions_type}"
-        )
-
-        self.run_repetitions(
-            self.config.repetitions, self.config.repetitions_type, self.duet_repetition
-        )
-
-        if self.config.sequential_repetitions > 0:
-            self.logger.info(
-                f"Run sequential: {self.config.benchmark}, "
-                f"repetitions: {self.config.sequential_repetitions}, "
-                f"repetitions_type: {self.config.sequential_repetitions_type}"
-            )
-
-            self.run_repetitions(
-                self.config.sequential_repetitions,
-                self.config.sequential_repetitions_type,
-                self.sequential_repetition,
-            )
-
-    def get_run_order(self, run_id, repetition_type: RepetititionType):
-        in_order = [self.a, self.b]
-        reverse_order = list(reversed(in_order))
-        if repetition_type == RepetititionType.IN_ORDER:
-            return in_order
-        elif repetition_type == RepetititionType.RANDOM:
-            return in_order if random.choice([True, False]) else reverse_order
-        elif repetition_type == RepetititionType.SWAP:
-            return reverse_order if run_id % 2 else in_order
+        if self.config.scheduling == Schedule.SEQUENTIAL:
+            pass
+        elif self.config.scheduling == Schedule.RANDOMIZED_INTERLEAVING_TRIALS:
+            random.shuffle(plan)
         else:
-            raise NotImplementedError(
-                f"Unknown repetition type: {self.repetitions_type}"
-            )
+            raise NotImplementedError()
 
-    @staticmethod
-    def run_order_str(run_order):
-        return "".join([benchmark.config.pair.value for benchmark in run_order])
+        self.logger.info(f"PLAN: {[str(x) for x in plan]}")
 
-    def duet_repetition(self, run_id, run_order):
-        for benchmark in run_order:
-            benchmark.run_async()
+        self.execute(plan)
 
-        self.logger.info(f"Wait - runid: {run_id}")
-        for benchmark in run_order:
-            benchmark.wait()
+    def plan(self):
+        plan = []
+        for duet_config in self.config.duets:
+            for duet_runid in range(duet_config.duet_repetitions):
+                plan.append(
+                    DuetBenchmarkRunner(
+                        duet_config, self.results_dir, duet_runid, DuetOrder.AB
+                    )
+                )
+            for seq_runid in range(duet_config.sequential_repetitions):
+                plan.append(
+                    SequentialBenchmarkRunner(
+                        duet_config, self.results_dir, seq_runid, Pair.A
+                    )
+                )
+                plan.append(
+                    SequentialBenchmarkRunner(
+                        duet_config, self.results_dir, seq_runid, Pair.B
+                    )
+                )
+        return plan
 
-        self.logger.info(
-            f"Get results - runid: {run_id}, type: {Type.SEQUENTIAL.value}"
-        )
-        self.a.get_results(
-            self.results_dir,
-            run_id,
-            Type.DUET,
-            DuetBenchmark.run_order_str(run_order),
-        )
-        self.b.get_results(
-            self.results_dir,
-            run_id,
-            Type.DUET,
-            DuetBenchmark.run_order_str(run_order),
-        )
-
-    def sequential_repetition(self, run_id, run_order):
-        for benchmark in run_order:
-            benchmark.run_async()
-            benchmark.wait()
-
-        self.logger.info(
-            f"Get results - runid: {run_id}, type: {Type.SEQUENTIAL.value}"
-        )
-        self.a.get_results(
-            self.results_dir,
-            run_id,
-            Type.SEQUENTIAL,
-            DuetBenchmark.run_order_str(run_order),
-        )
-        self.b.get_results(
-            self.results_dir,
-            run_id,
-            Type.SEQUENTIAL,
-            DuetBenchmark.run_order_str(run_order),
-        )
-
-    def run_repetitions(
-        self, repetitions: int, type: RepetititionType, repetition_function
-    ):
-        if repetitions <= 0:
-            raise RuntimeWarning(
-                f"Invalid number of repetitions {self.config.repetitions}"
-            )
-
-        repetition_duration = []
-        for run_id in range(self.config.repetitions):
-            run_order = self.get_run_order(run_id, self.config.repetitions_type)
-            self.logger.info(
-                f"Run repetition - runid: {run_id}, order: {[x.config.container for x in run_order]}"
-            )
-
-            start = datetime.datetime.now()
-            repetition_function(run_id, run_order)
-            end = datetime.datetime.now()
-            repetition_duration.append(end - start)
-
-        total_run_time = sum(repetition_duration, datetime.timedelta()).total_seconds()
-        average_run_time = total_run_time / len(repetition_duration)
-
-        self.logger.info(
-            f"Finish repetitions - "
-            f"total run time: {datetime.timedelta(seconds=total_run_time)}, "
-            f"averave run time: {datetime.timedelta(seconds=average_run_time)}, "
-            f"max run time: {max(repetition_duration)}"
-        )
-        self.logger.debug(
-            f"Finish duet run times: {[str(time) for time in repetition_duration]}"
-        )
-
-    def cleanup(self):  # nothrow
-        self.logger.info("Cleanup")
-        self.a.cleanup(self.config.remove_containers)
-        self.b.cleanup(self.config.remove_containers)
+    def execute(self, plan):
+        for benchmark in plan:
+            try:
+                benchmark.run()
+            except RuntimeError as e:
+                self.logger.error(f"{benchmark} failed with exception: {e}")
+                traceback.print_exc()
+            except Exception as e:
+                self.logger.critical(f"{benchmark} unexpected exception: {e}")
+                traceback.print_exc()
+            finally:
+                benchmark.cleanup()
 
 
 def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger):
@@ -333,29 +328,6 @@ def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
             traceback.print_exc()
 
 
-def run_duets(config: DuetBenchConfig, results_dir: str, logger):
-    for duet_config in config.duets:
-        logger.info(f"DuetBenchmark `{duet_config.benchmark}`")
-        duet = None
-        try:
-            duet = DuetBenchmark(
-                duet_config, results_dir, logging.getLogger(duet_config.benchmark)
-            )
-            duet.run()
-        except RuntimeError as e:
-            logger.error(f"Duet `{duet_config.benchmark}` failed with exception: {e}")
-            traceback.print_exc()
-        except RuntimeWarning as e:
-            logger.warning(f"Duet `{duet_config.benchmark}` issued warning: {e}")
-            traceback.print_exc()
-        except Exception as e:
-            logger.critical(f"Duet `{duet_config.benchmark}` unexpected exception: {e}")
-            traceback.print_exc()
-        finally:
-            if duet:
-                duet.cleanup()
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -392,7 +364,6 @@ def main():
         datefmt="%b %d %H:%M:%S",
     )
     logger = logging.getLogger("duet")
-    logger.info(f"Start duet benchmark with config: {config}")
 
     if config.seed:
         logger.info(f"Seed: {config.seed}")
@@ -407,7 +378,8 @@ def main():
         results_dir = create_results_dir(config, args.outdir, args.force, logger)
         gather_artifacts(config.artifacts, results_dir, logger)
         if not args.artifacts_only:
-            run_duets(config, results_dir, logger)
+            harness = Harness(config, results_dir, logger)
+            harness.run()
     except Exception as e:
         logging.critical(f"Critical run duets error: {e}")
         traceback.print_exc()

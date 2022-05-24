@@ -42,16 +42,15 @@ Example: [renaissance duet YAML config](./benchmarks/renaissance/duet.yml)
 duetbench:
   suite: renaissance                # name of the benchmark suite - used for parsing results
   verbose: true                     # debug logging
-  seed: 42                          # seed for repetitions
+  seed: 42                          # random seed
   docker_command: podman            # command to invoke docker in shell, default is docker
 
   remove_containers: true           # remove containers after finish
 
-  repetitions: 2                    # number of harness repetitions
-  repetitions_type: swap            # how to interleave harness repetitions, options: random, swap, in_order
-
+  duet_repetitions: 2               # number of harness repetitions
   sequential_repetitions: 2         # sequential repetitions, default 0
-  sequential_repetitions_type: swap # sequential repetitions type, same as `repetitions_type`
+
+  schedule: randomized_interleaving_trials # what schedule to use on benchmarks
 
   artifacts:                        # artifacts to gather before the run
     uname: uname -a                 # `uname` artifact, run `uname -a > {results_dir}/artifacts/uname`
@@ -66,7 +65,7 @@ duetbench:
     - a-benchmark                   # invalid names: `artifacts`, `duetbench`
 
 a-benchmark:
-  repetitions: 4                       # overwrite value from duetbench config
+  duet_repetitions: 4                  # overwrite value from duetbench config
   A:                                   # A run
     run: echo RunningA > /duet/results # command to run the benchmark harness in the container
 
@@ -141,7 +140,7 @@ Once you have the tools installed, config read, and docker image built it is as 
 
 Logging should give you an idea of what is going on, it also logs all the outputs from the benchmarks themselves so you can examine that as well.
 
-Results themselves have fixed naming schema `<suite_name>.<benchmark_name>.<run_id>.<run_order>.<run_type>.<results_file_from_config>`.
+Results themselves have fixed naming schema `<suite_name>.<benchmark_name>.<runid>.<duet_order>.<run_type>.<results_file_from_config>`.
 ```
 (venv) *[feature/duet2][~/d/school/thesis-master/asynchronous-duet]$ ls -lRh results.renaissance.test
 results.renaissance.test:

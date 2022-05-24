@@ -5,11 +5,9 @@ duetbench:
 
   remove_containers: true
 
-  repetitions: 2
-  repetitions_type: swap
-
+  duet_repetitions: 2
   sequential_repetitions: 2
-  sequential_repetitions_type: swap
+  schedule: randomized_interleaving_trials
 
   image: renaissance
   results:
@@ -18,9 +16,6 @@ duetbench:
   artifacts:
     date: date
     hostname: hostname
-    uname: uname -a
-    lscpu: lscpu
-    meminfo: cat /proc/meminfo
 
   duets:
     - debug
@@ -28,7 +23,7 @@ duetbench:
 
 debug:
   suite: debug
-  repetitions: 4
+  duet_repetitions: 1
   A:
     run: echo RunningA > /duet/results
 
