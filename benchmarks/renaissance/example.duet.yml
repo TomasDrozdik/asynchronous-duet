@@ -5,9 +5,11 @@ duetbench:
 
   remove_containers: true
 
-  duet_repetitions: 2
-  sequential_repetitions: 2
+  duet_repetitions: 1
+  sequential_repetitions: 1
   schedule: randomized_interleaving_trials
+
+  run_base: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 4
 
   image: renaissance
   results:
@@ -24,6 +26,7 @@ duetbench:
 debug:
   suite: debug
   duet_repetitions: 1
+  run_base: bash
   A:
     run: echo RunningA > /duet/results
 
@@ -35,4 +38,4 @@ chi-square:
   results:
     - /duet/results.json
   A:
-    run: java -jar renaissance-gpl-0.13.0.jar --json results.json --repetitions 4 chi-square
+    run:  chi-square

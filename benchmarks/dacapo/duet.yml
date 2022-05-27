@@ -1,16 +1,4 @@
 # Dacapo duet config
-#
-# Each test runs with the following JVM config:
-#
-# Memory 1.5G, quater for young generation:
-# -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
-#
-# Restrains heap-configuration self adaptation
-# -XX:SurvivorRatio=4
-# -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
-# -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
-# -XX:+UseParallelGC -XX:+UseParallelOldGC
-
 
 duetbench:
   suite: dacapo
@@ -23,17 +11,29 @@ duetbench:
   duet_repetitions: 2
   sequential_repetitions: 2
 
+  image: dacapo
+
+  results:
+    - /duet/results.csv
+
+  # Each test runs with the following JVM config:
+  #
+  # Memory 1.5G, quater for young generation:
+  # -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
+  #
+  # Restrains heap-configuration self adaptation
+  # -XX:SurvivorRatio=4
+  # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
+  # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
+  # -XX:+UseParallelGC -XX:+UseParallelOldGC
+  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o /duet/results.csv
+
   artifacts:
     date: date
     hostname: hostname
     uname: uname -a
     lscpu: lscpu
     meminfo: cat /proc/meminfo
-
-  image: dacapo
-
-  results:
-    - /duet/results.csv
 
   duets:
     - avrora
@@ -53,56 +53,56 @@ duetbench:
 
 avrora:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv avrora
+    run: avrora
 
 batik:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv batik
+    run: batik
 
 eclipse:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv eclipse
+    run: eclipse
 
 fop:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv fop
+    run: fop
 
 h2:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv h2
+    run: h2
 
 jython:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv jython
+    run: jython
 
 luindex:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv luindex
+    run: luindex
 
 lusearch:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv lusearch
+    run: lusearch
 
 pmd:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv pmd
+    run: pmd
 
 sunflow:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv sunflow
+    run: sunflow
 
 tomcat:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv tomcat
+    run: tomcat
 
 tradebeans:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv tradebeans
+    run: tradebeans
 
 tradesoap:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv tradesoap
+    run: tradesoap
 
 xalan:
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o results.csv xalan
+    run: xalan

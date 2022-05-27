@@ -1,16 +1,4 @@
 # Renaissance duet config
-#
-# Each test runs with the following JVM config:
-#
-# Memory 1.5G, quater for young generation:
-# -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
-#
-# Restrains heap-configuration self adaptation
-# -XX:SurvivorRatio=4
-# -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
-# -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
-# -XX:+UseParallelGC -XX:+UseParallelOldGC
-
 
 duetbench:
   suite: renaissance
@@ -33,6 +21,18 @@ duetbench:
 
   results:
     - /duet/results.json
+
+  # Each test runs with the following JVM config:
+  #
+  # Memory 1.5G, quater for young generation:
+  # -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M
+  #
+  # Restrains heap-configuration self adaptation
+  # -XX:SurvivorRatio=4
+  # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
+  # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
+  # -XX:+UseParallelGC -XX:+UseParallelOldGC
+  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json /duet/results.json
 
   duets:
     - akka-uct
@@ -65,130 +65,130 @@ akka-uct:
   # Runs the Unbalanced Cobwebbed Tree actor workload in Akka.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json akka-uct
+    run: akka-uct
 
 als:
   # Runs the ALS algorithm from the Spark MLlib.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json als
+    run: als
 
 
 chi-square:
   # Runs the chi-square test from Spark MLlib.
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json chi-square
+    run: chi-square
 
 
 db-shootout:
   # Executes a shootout test using several in-memory databases.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json db-shootout
+    run: db-shootout
 
 
 dec-tree:
   # Runs the Random Forest algorithm from Spark MLlib.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json dec-tree
+    run: dec-tree
 
 
 dotty:
   # Runs the Dotty compiler on a set of source code files.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json dotty
+    run: dotty
 
 
 finagle-chirper:
   # Simulates a microblogging service using Twitter Finagle.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json finagle-chirper
+    run: finagle-chirper
 
 
 finagle-http:
   # Sends many small Finagle HTTP requests to a Finagle HTTP server and awaits
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json finagle-http
+    run: finagle-http
 
 fj-kmeans:
   # Runs the k-means algorithm using the fork/join framework.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json fj-kmeans
+    run: fj-kmeans
 
 
 future-genetic:
   # Runs a genetic algorithm using the Jenetics library and futures.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json future-genetic
+    run: future-genetic
 
 
 gauss-mix:
   # Computes a Gaussian mixture model using expectation-maximization.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json gauss-mix
+    run: gauss-mix
 
 
 log-regression:
   # Runs the logistic regression workload from the Spark MLlib.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json log-regression
+    run: log-regression
 
 
 mnemonics:
   # Solves the phone mnemonics problem using JDK streams.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json mnemonics
+    run: mnemonics
 
 
 movie-lens:
   # Recommends movies using the ALS algorithm.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json movie-lens
+    run: movie-lens
 
 
 naive-bayes:
   # Runs the multinomial naive Bayes algorithm from the Spark MLlib.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json naive-bayes
+    run: naive-bayes
 
 
 neo4j-analytics:
   # Executes Neo4J graph queries against a movie database.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json neo4j-analytics
+    run: neo4j-analytics
 
 
 page-rank:
   # Runs a number of PageRank iterations, using RDDs.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json page-rank
+    run: page-rank
 
 
 par-mnemonics:
   # Solves the phone mnemonics problem using parallel JDK streams.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json par-mnemonics
+    run: par-mnemonics
 
 
 philosophers:
   # Solves a variant of the dining philosophers problem using ScalaSTM.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json philosophers
+    run: philosophers
 
 
 reactors:
@@ -196,39 +196,39 @@ reactors:
   # sequence on Reactors.IO.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json reactors
+    run: reactors
 
 
 rx-scrabble:
   # Solves the Scrabble puzzle using the Rx streams.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json rx-scrabble
+    run: rx-scrabble
 
 
 scala-doku:
   # Solves Sudoku Puzzles using Scala collections.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json scala-doku
+    run: scala-doku
 
 
 scala-kmeans:
   # Runs the K-Means algorithm using Scala collections.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json scala-kmeans
+    run: scala-kmeans
 
 
 scala-stm-bench7:
   # Runs the stmbench7 benchmark using ScalaSTM.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json scala-stm-bench7
+    run: scala-stm-bench7
 
 
 scrabble:
   # Solves the Scrabble puzzle using JDK Streams.
 
   A:
-    run: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json results.json scrabble
+    run: scrabble
