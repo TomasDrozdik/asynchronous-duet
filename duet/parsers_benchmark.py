@@ -49,3 +49,23 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
     df["iteration_start_ns"] = (df["epoch_start_ms"] * 1_000_000) + df["uptime_ns"]
     df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
     return df
+
+
+def process_dacapo(result_file: ResultFile, logger):
+    df = pd.read_csv(result_file.result_path)
+    df.rename({"iteration_time_ns": "iteration_duration_ns"}, axis=1, inplace=True)
+    df["suite"] = result_file.suite
+    df["type"] = result_file.type.value
+    df["order"] = result_file.duet_order
+    df["pair"] = result_file.pair
+    df["runid"] = result_file.runid
+
+    df["c"] = 1
+    df["iteration"] = df.groupby(by=["suite", "type", "order", "pair", "runid"])[
+        "c"
+    ].cumsum()
+    df.drop("c", axis=1, inplace=True)
+
+    df["iteration_start_ns"] = df["total_ms"] + df["iteration_duration_ns"]
+    df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
+    return df

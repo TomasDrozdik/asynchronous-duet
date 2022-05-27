@@ -10,7 +10,7 @@ import logging
 from enum import Enum
 
 from duet.duetconfig import ARTIFACTS_DIR, ResultFile, DuetBenchConfig
-from duet.parsers_benchmark import process_renaissance
+from duet.parsers_benchmark import process_renaissance, process_dacapo
 from duet.parsers_artifact import (
     parse_lscpu,
     parse_meminfo,
@@ -20,6 +20,8 @@ from duet.parsers_artifact import (
 
 BENCHMARK_PARSERS = {
     "renaissance": process_renaissance,
+    "dacapo": process_dacapo,
+    "scalabench": process_dacapo,
     "debug": lambda file, logger: pd.DataFrame(),
 }
 
@@ -56,7 +58,9 @@ def process_results(results, config: DuetBenchConfig) -> pd.DataFrame:
     for result in results:
         try:
             result_df = process_result(result, config, logging.getLogger(result))
-            assert set(result_df.columns).issuperset(REQUIRED_SCHEMA)
+            assert set(result_df.columns).issuperset(
+                REQUIRED_SCHEMA
+            ), f"Columns: {result_df.columns}"
         except Exception:
             logging.error(f"Processing results {result} failed with exception.")
             traceback.print_exc()
