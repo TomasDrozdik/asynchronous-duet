@@ -5,6 +5,7 @@ import datetime
 import logging
 import os
 import random
+import signal
 import subprocess
 import sys
 import traceback
@@ -145,12 +146,12 @@ class Benchmark:
         try:
             self.runner.run(f"{DOCKER} stop {self.config.container}")
         except RuntimeError as e:
-            self.logger.warn(f"Cleanup stop hit exception: {e}")
+            self.logger.warn(f"CLEANUP {DOCKER} stop hit exception: {e}")
         if rm:
             try:
                 self.runner.run(f"{DOCKER} rm {self.config.container}")
             except RuntimeError as e:
-                self.logger.warn(f"Cleanup rm hit exception: {e}")
+                self.logger.warn(f"CLEANUP {DOCKER} rm hit exception: {e}")
 
 
 class SequentialBenchmarkRunner:
@@ -274,6 +275,7 @@ class Harness:
         return plan
 
     def execute(self, plan):
+        signal.signal(signal.SIGINT, self.handle_interrupt_and_exit)
         for benchmark in plan:
             try:
                 benchmark.run()
@@ -285,6 +287,11 @@ class Harness:
                 traceback.print_exc()
             finally:
                 benchmark.cleanup()
+
+    def handle_interrupt_and_exit(self, *args):
+        self.logger.info("CAUGHT INTERRUPT, CLEANUP AND EXIT")
+        # Throw SystemExit exception that gets caught in execute and does cleaup if viable
+        sys.exit(1)
 
 
 def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger):
