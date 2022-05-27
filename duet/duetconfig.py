@@ -50,7 +50,7 @@ def unique(values):
 
 
 class BenchmarkConfig:
-    VALUES = ["image", "run", "results"]
+    VALUES = ["image", "run", "results", "run_base"]
 
     def __init__(self, parent, config: dict, pair: Pair):
         check_valid_keys(parent, config, BenchmarkConfig.VALUES)
@@ -69,7 +69,9 @@ class BenchmarkConfig:
 
         self.image: str = self.get_or_inherit("image")
 
-        self.run_command: str = config["run"]
+        self.base_run_command = self.get_or_inherit("run_base", "")
+
+        self.run_command: str = f"{self.base_run_command} {self.config['run']}"
 
         self.result_files: List[str] = self.get_or_inherit("results")
 
@@ -103,6 +105,7 @@ class DuetConfig:
         "remove_containers",
         "duet_repetitions",
         "sequential_repetitions",
+        "run_base",
     ] + BenchmarkConfig.VALUES
 
     def __init__(self, benchmark: str, config: dict, duetbenchconfig):
@@ -171,6 +174,7 @@ class DuetBenchConfig:
         "duets",
         "artifacts",
         "schedule",
+        "run_base",
     ]
     VALUES = DuetConfig.VALUES
 
