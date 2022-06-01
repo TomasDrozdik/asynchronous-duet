@@ -254,7 +254,7 @@ class DuetBenchConfig:
 
 class ResultFile:
     FILENAME_REGEX = re.compile(
-        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<type>duet|sequential)\.(?P<duet_order>[a-zA-Z0-9_-]+)\.(?P<pair>[AB])\.(?P<result_file>.*)"
+        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<type>duet|sequential)\.(?P<duet_order>AB|BA|None)\.(?P<pair>[AB])\.(?P<result_file>.*)"
     )
 
     @staticmethod
@@ -299,5 +299,8 @@ class ResultFile:
     def __repr__(self):
         return f"ResultFile({self.filename()})"
 
+    def sanitize(self, s):
+        return s.replace(".", "_")
+
     def filename(self):
-        return f"{self.suite}.{self.benchmark}.{self.runid}.{self.type.value}.{self.duet_order}.{self.pair}.{self.result_file}"
+        return f"{self.sanitize(self.suite)}.{self.sanitize(self.benchmark)}.{self.runid}.{self.type.value}.{self.duet_order}.{self.pair}.{self.result_file}"
