@@ -10,7 +10,7 @@ import logging
 from enum import Enum
 
 from duet.duetconfig import ARTIFACTS_DIR, ResultFile, DuetBenchConfig
-from duet.parsers_benchmark import process_renaissance, process_dacapo
+from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
 from duet.parsers_artifact import (
     parse_lscpu,
     parse_meminfo,
@@ -22,6 +22,7 @@ BENCHMARK_PARSERS = {
     "renaissance": process_renaissance,
     "dacapo": process_dacapo,
     "scalabench": process_dacapo,
+    "speccpu": process_spec,
     "debug": lambda file, logger: pd.DataFrame(),
 }
 

@@ -1,7 +1,19 @@
+import re
 import pandas as pd
 import json
+from pathlib import Path
 
 from duet.duetconfig import ResultFile
+
+
+def add_result_file_columns(df: pd.DataFrame, result_file: ResultFile) -> pd.DataFrame:
+    df["suite"] = result_file.suite
+    df["benchmark"] = result_file.benchmark
+    df["type"] = result_file.type.value
+    df["order"] = result_file.duet_order
+    df["pair"] = result_file.pair
+    df["runid"] = result_file.runid
+    return df
 
 
 def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
@@ -20,13 +32,8 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
         for iteration, iteration_data in enumerate(benchmark_data["results"]):
             results.append(
                 {
-                    "suite": result_file.suite,
                     "benchmark": benchmark,
-                    "runid": result_file.runid,
                     "iteration": iteration,
-                    "type": result_file.type.value,
-                    "pair": result_file.pair,
-                    "order": result_file.duet_order,
                     "epoch_start_ms": vm_start_ms,
                     "iteration_duration_ns": iteration_data["duration_ns"],
                     "uptime_ns": iteration_data["uptime_ns"],
@@ -48,18 +55,15 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
     df = pd.DataFrame(results)
     df["iteration_start_ns"] = (df["epoch_start_ms"] * 1_000_000) + df["uptime_ns"]
     df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
+
+    df = add_result_file_columns(df, result_file)
     return df
 
 
 def process_dacapo(result_file: ResultFile, logger):
     df = pd.read_csv(result_file.result_path)
     df.rename({"iteration_time_ns": "iteration_duration_ns"}, axis=1, inplace=True)
-    df["suite"] = result_file.suite
-    df["type"] = result_file.type.value
-    df["order"] = result_file.duet_order
-    df["pair"] = result_file.pair
-    df["runid"] = result_file.runid
-
+    df = add_result_file_columns(df, result_file)
     df["c"] = 1
     df["iteration"] = df.groupby(by=["suite", "type", "order", "pair", "runid"])[
         "c"
@@ -68,4 +72,49 @@ def process_dacapo(result_file: ResultFile, logger):
 
     df["iteration_start_ns"] = df["total_ms"] + df["iteration_duration_ns"]
     df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
+    return df
+
+
+def process_spec(result_file: ResultFile, logger):
+    """
+    SPEC CPU logs report timings of iterations in logs in a following way:
+
+    Benchmark Times:
+     Run Start:    2022-06-01 14:04:52 (1654092292)
+     Rate Start:   2022-06-01 14:04:52 (1654092292.28303)
+     Rate End:     2022-06-01 14:12:37 (1654092757.17651)
+     Run Stop:     2022-06-01 14:12:37 (1654092757)
+     Run Elapsed:  00:07:45 (465)
+    """
+    result_dir = Path(result_file.result_path)
+    assert result_dir.is_dir()
+    runlog = list(result_dir.glob("*002.log"))
+    assert len(runlog) == 1
+    runlog_lines = runlog[0].read_text().splitlines()
+
+    rate_start_re = re.compile(r".*Rate Start:.*\((?P<timestamp>.*)\)")
+    rate_end_re = re.compile(r".*Rate End:.*\((?P<timestamp>.*)\)")
+
+    rate_starts = []
+    rate_ends = []
+
+    for line in runlog_lines:
+        for regex, container in [
+            (rate_start_re, rate_starts),
+            (rate_end_re, rate_ends),
+        ]:
+            match = regex.match(line)
+            if match:
+                container.append(float(match.group(1)) * 1000)  # us to ns
+
+    df = pd.DataFrame(
+        {
+            "iteration_start_ns": rate_starts,
+            "iteration_end_ns": rate_ends,
+        }
+    )
+    df["iteration"] = df.index
+    df["iteration_duration_ns"] = df["iteration_end_ns"] - df["iteration_start_ns"]
+
+    df = add_result_file_columns(df, result_file)
     return df
