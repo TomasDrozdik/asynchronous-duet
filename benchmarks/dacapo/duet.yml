@@ -8,8 +8,8 @@ duetbench:
 
   remove_containers: true
 
-  duet_repetitions: 2
-  sequential_repetitions: 2
+  duet_repetitions: 4
+  sequential_repetitions: 4
 
   image: dacapo
 
