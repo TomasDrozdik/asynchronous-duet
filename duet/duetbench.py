@@ -353,7 +353,21 @@ def parse_arguments():
         action="store_true",
         help="Only gather artifacts, do not run duet",
     )
+    parser.add_argument(
+        "-d",
+        "--docker",
+        type=str,
+        help="Docker command to use - docker/podman",
+    )
+
     return parser.parse_args()
+
+
+def override_config_from_args(config: DuetBenchConfig, args):
+    if args.docker:
+        config.docker_command = args.docker
+
+    return config
 
 
 def main():
@@ -364,6 +378,8 @@ def main():
         logging.critical(f"Critical config error: {e}")
         traceback.print_exc()
         sys.exit(1)
+
+    config = override_config_from_args(config, args)
 
     logging.basicConfig(
         format="%(asctime)s  %(name)-20s %(levelname)-8s  %(message)s",
