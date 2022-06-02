@@ -4,24 +4,56 @@ Tool for running Asynchronous Duet Benchmarks.
 This is "practical part" of a [Master Thesis](https://github.com/TomasDrozdik/asynchronous-duet-thesis).
 
 - [Asynchronous Duet Benchmarking](#asynchronous-duet-benchmarking)
+  - [Install/Buid/Run TL;DR](#installbuidrun-tldr)
   - [Build and Benchmark](#build-and-benchmark)
     - [Build docker image(s)](#build-docker-images)
-    - [Run config](#run-config)
-    - [How `duetbench.py` does it?](#how-duetbenchpy-does-it)
     - [Install](#install)
     - [Run asynchronous-duet benchmark!](#run-asynchronous-duet-benchmark)
+    - [Run config](#run-config)
+    - [How `duetbench.py` does it?](#how-duetbenchpy-does-it)
   - [Process results](#process-results)
   - [Interpret results](#interpret-results)
   - [Development setup](#development-setup)
     - [Tests](#tests)
 
+
+## Install/Buid/Run TL;DR
+
+```
+# Install duet tools
+python3 -m venv venv
+source venv/bin/activate
+pip install .
+
+# Build docker images, WARNING: need git LFS
+git lfs checkout
+./build.sh -d <docker|podman>
+
+# Run test configs
+./run.sh -d <docker|podman> -o <existing_result_dir> -t
+
+# Run
+./run.sh -d <docker|podman> -o <existing_result_dir>
+```
+
 ## Build and Benchmark
 
 Simple guide on how to run asynchronous duet benchmark.
 
-
 ### Build docker image(s)
 
+Docker images data are stored in git LFS storage ([more info and install instructions](https://git-lfs.github.com/))
+After fresh checkout you need to run:
+```
+git lfs checkout
+```
+
+**Build using script:**
+```
+$ ./build.sh -d <docker|podman>
+```
+
+**Build manually:**
 Example: [renaissance docker image](./benchmarks/renaissance/Dockerfile) for [Renaissance suite](https://renaissance.dev/)
 
 It is built from `openjdk11` image and it downloads renaissance suite jar file.
@@ -30,6 +62,63 @@ It is built from `openjdk11` image and it downloads renaissance suite jar file.
 cd ./benchmarks/renaissance/Dockerfile
 docker build --tag renaissance .
 ```
+
+### Install
+
+Ideally use python virtual environment
+```
+(venv)$ pip install .[all]
+```
+
+> If using `zsh` shell you need to escape first '[' i.e. `pip install .\[all]`
+
+This should install scripts `duetbench.py` and `duetprocess.py` as well as dependencies for [`analyze.ipynb`](./duet/analyze.ipynb).
+
+Running:
+```
+(venv)$ duetbench --help # if installed via `pip install .`
+(venv)$ python -m duet.duetbench --help # or this if requirements.txt are installed
+usage: duetbench [-h] config
+
+positional arguments:
+  config      YAML config file for the duet benchmark
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+### Run asynchronous-duet benchmark!
+
+Once you have the tools installed, config read, and docker image built it is as simple as `duetbench <config>` e.g.
+
+```
+(venv)$ duetbench ./benchmarks/renaissance/duet.yml
+```
+
+Logging should give you an idea of what is going on, it also logs all the outputs from the benchmarks themselves so you can examine that as well.
+
+Results themselves have fixed naming schema `<suite_name>.<benchmark_name>.<runid>.<duet_order>.<run_type>.<results_file_from_config>`.
+```
+(venv) *[feature/duet2][~/d/school/thesis-master/asynchronous-duet]$ ls -lRh results.renaissance.test
+results.renaissance.test:
+total 36K
+drwxrwxrwx 1 root root 4.0K May 15 18:49 artifacts
+-rwxrwxrwx 1 root root 7.7K May 15 18:49 renaissance.chi-square.0.duet.AB.A.results.json
+-rwxrwxrwx 1 root root 7.8K May 15 18:49 renaissance.chi-square.0.duet.AB.B.results.json
+-rwxrwxrwx 1 root root 7.7K May 15 18:50 renaissance.chi-square.1.duet.BA.A.results.json
+-rwxrwxrwx 1 root root 7.7K May 15 18:50 renaissance.chi-square.1.duet.BA.B.results.json
+
+results.renaissance.test/artifacts:
+total 9.5K
+-rwxrwxrwx 1 root root   33 May 15 18:49 date
+-rwxrwxrwx 1 root root    7 May 15 18:49 hostname
+-rwxrwxrwx 1 root root 2.6K May 15 18:49 lscpu
+-rwxrwxrwx 1 root root 1.5K May 15 18:49 meminfo
+-rwxrwxrwx 1 root root   93 May 15 18:49 uname
+```
+
+This fixed naming schema is utilized later in processing.
+
 
 ### Run config
 
@@ -104,63 +193,6 @@ if <remove_containers> ; then
     docker rm containerB
 fi
 ```
-
-
-### Install
-
-Ideally use python virtual environment
-```
-(venv)$ pip install .[all]
-```
-
-> If using `zsh` shell you need to escape first '[' i.e. `pip install .\[all]`
-
-This should install scripts `duetbench.py` and `duetprocess.py` as well as dependencies for [`analyze.ipynb`](./duet/analyze.ipynb).
-
-Running:
-```
-(venv)$ duetbench --help # if installed via `pip install .`
-(venv)$ python -m duet.duetbench --help # or this if requirements.txt are installed
-usage: duetbench [-h] config
-
-positional arguments:
-  config      YAML config file for the duet benchmark
-
-optional arguments:
-  -h, --help  show this help message and exit
-```
-
-### Run asynchronous-duet benchmark!
-
-Once you have the tools installed, config read, and docker image built it is as simple as `duetbench <config>` e.g.
-
-```
-(venv)$ duetbench ./benchmarks/renaissance/duet.yml
-```
-
-Logging should give you an idea of what is going on, it also logs all the outputs from the benchmarks themselves so you can examine that as well.
-
-Results themselves have fixed naming schema `<suite_name>.<benchmark_name>.<runid>.<duet_order>.<run_type>.<results_file_from_config>`.
-```
-(venv) *[feature/duet2][~/d/school/thesis-master/asynchronous-duet]$ ls -lRh results.renaissance.test
-results.renaissance.test:
-total 36K
-drwxrwxrwx 1 root root 4.0K May 15 18:49 artifacts
--rwxrwxrwx 1 root root 7.7K May 15 18:49 renaissance.chi-square.0.duet.AB.A.results.json
--rwxrwxrwx 1 root root 7.8K May 15 18:49 renaissance.chi-square.0.duet.AB.B.results.json
--rwxrwxrwx 1 root root 7.7K May 15 18:50 renaissance.chi-square.1.duet.BA.A.results.json
--rwxrwxrwx 1 root root 7.7K May 15 18:50 renaissance.chi-square.1.duet.BA.B.results.json
-
-results.renaissance.test/artifacts:
-total 9.5K
--rwxrwxrwx 1 root root   33 May 15 18:49 date
--rwxrwxrwx 1 root root    7 May 15 18:49 hostname
--rwxrwxrwx 1 root root 2.6K May 15 18:49 lscpu
--rwxrwxrwx 1 root root 1.5K May 15 18:49 meminfo
--rwxrwxrwx 1 root root   93 May 15 18:49 uname
-```
-
-This fixed naming schema is utilized later in processing.
 
 
 ## Process results
