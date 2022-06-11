@@ -6,6 +6,7 @@ This is "practical part" of a [Master Thesis](https://github.com/TomasDrozdik/as
 - [Asynchronous Duet Benchmarking](#asynchronous-duet-benchmarking)
   - [Install/Buid/Run TL;DR](#installbuidrun-tldr)
   - [Build and Benchmark](#build-and-benchmark)
+    - [Docker image requirements](#docker-image-requirements)
     - [Build docker image(s)](#build-docker-images)
     - [Install](#install)
     - [Run asynchronous-duet benchmark!](#run-asynchronous-duet-benchmark)
@@ -15,6 +16,8 @@ This is "practical part" of a [Master Thesis](https://github.com/TomasDrozdik/as
   - [Interpret results](#interpret-results)
   - [Development setup](#development-setup)
     - [Tests](#tests)
+- [Notes duet configs](#notes-duet-configs)
+    - [Runs iterations and timeouts](#runs-iterations-and-timeouts)
 
 
 ## Install/Buid/Run TL;DR
@@ -39,6 +42,11 @@ git lfs checkout
 ## Build and Benchmark
 
 Simple guide on how to run asynchronous duet benchmark.
+
+### Docker image requirements
+
+* `bash`
+* `pgrep`
 
 ### Build docker image(s)
 
@@ -282,3 +290,16 @@ There are no tests so far :-)
 ```
 (venv)$ pytest
 ```
+
+# Notes duet configs
+
+### Runs iterations and timeouts
+
+**Runs:**
+* 20 runs on Amazon t instances
+* 40 runs on Amazon m instances
+* over 100 runs on other platforms
+
+**Iterations:**
+* Faster platforms (public cloud at full speed, private cloud and bare metal): 100 iterations or 10 minutes
+* Slower platforms (public clouds with token bucket processor allocation): 100 iterations or 60 minutes.

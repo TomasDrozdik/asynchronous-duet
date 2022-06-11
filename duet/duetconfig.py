@@ -106,6 +106,7 @@ class DuetConfig:
         "duet_repetitions",
         "sequential_repetitions",
         "run_base",
+        "timeout",
     ] + BenchmarkConfig.VALUES
 
     def __init__(self, benchmark: str, config: dict, duetbenchconfig):
@@ -130,6 +131,9 @@ class DuetConfig:
         self.sequential_repetitions: int = self.get_or_inherit(
             "sequential_repetitions", default=0
         )
+
+        self.timeout: int = self.get_or_inherit("timeout", default=0)
+        self.timeout: int = None if self.timeout <= 0 else self.timeout
 
         self.type = (
             DuetBenchType.AB

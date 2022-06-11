@@ -45,11 +45,13 @@ class Runner:
         p = subprocess.run(
             self.split_cmd(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        self.log(p.stdout, p.stderr)
+        stdout, stderr = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
+        self.log(stdout, stderr)
         if p.returncode:
             raise RuntimeError(
                 f"Running '{cmd}' finished with non-zero exit status {p.returncode}"
             )
+        return stdout, stderr
 
     def run_async(self, cmd) -> int:
         self.logger.debug(f"run_async({self.async_processes_next_id})> {cmd}")
@@ -64,27 +66,37 @@ class Runner:
         self.async_processes_next_id = self.async_processes_next_id + 1
         return async_handle
 
-    def wait_async(self, handle: int):
+    def wait_async(
+        self, handle: int, timeout=None
+    ):  # throws TimeoutExpired, RuntimeError
         assert handle in self.async_processes.keys()
-        self.logger.debug(f"wait_async({handle})")
+        self.logger.debug(f"wait_async({handle}, timeout={timeout})")
 
         p = self.async_processes.pop(handle)
-        (stdout, stderr) = p.communicate()
-        returncode = p.wait()
-        self.log(stdout, stderr)
-        if returncode:
-            raise RuntimeError(
-                f"Running of async task finished with non-zero exit status: {returncode}"
+        stdout, stderr = None, None
+        try:
+            stdout, stderr = p.communicate(timeout=timeout)
+            if p.returncode:
+                raise RuntimeError(
+                    f"Running of async task finished with non-zero exit status: {p.returncode}"
+                )
+        except subprocess.TimeoutExpired as exc:
+            self.logger.debug(f"wait_async({handle}, timeout={timeout}) TIMEOUT")
+            raise exc
+        finally:
+            self.log(
+                stdout.decode("utf-8") if stdout else None,
+                stderr.decode("utf-8") if stderr else None,
             )
 
     def log(self, stdout, stderr):
         if stdout:
-            for line in stdout.decode("utf-8").splitlines():
+            for line in stdout.splitlines():
                 line = line.strip()
                 if line:
                     self.logger.info(">    " + line)
         if stderr:
-            for line in stderr.decode("utf-8").strip().splitlines():
+            for line in stderr.splitlines():
                 line = line.strip()
                 if line:
                     self.logger.warning(">     " + line)
@@ -108,9 +120,20 @@ class Benchmark:
         split_cmd.append(f"{self.config.run_command}")
         self.async_handle = self.runner.run_async(split_cmd)
 
-    def wait(self):
+    def wait(self, timeout=None):  # throws TimeoutExpired, RuntimeError
         assert self.async_handle is not None
-        self.runner.wait_async(self.async_handle)
+        self.runner.wait_async(self.async_handle, timeout)
+        self.async_handle = None
+
+    def stop(self):
+        benchmark_program = self.config.run_command.split()[0].split("/")[-1]
+        try:
+            pid, _ = self.runner.run(
+                f"{DOCKER} exec {self.config.container} pgrep {benchmark_program}"
+            )
+            self.runner.run(f"{DOCKER} exec {self.config.container} kill -15 {pid}")
+        except RuntimeError:
+            self.logger.warning("STOP not successful")
 
     def get_results(self, results_dir: str, runid: int, type: Type, duet_order: str):
         for remote_result_path in self.config.result_files:
@@ -171,16 +194,21 @@ class SequentialBenchmarkRunner:
         self.logger.info(f"{self} RUN")
         self.benchmark.start_instance()
         self.benchmark.run_async()
-        self.benchmark.wait()
+        self.benchmark.wait(timeout=self.config.timeout)
 
-        self.logger.info(f"{self} RESULTS")
-        self.benchmark.get_results(
-            self.results_dir, self.runid, Type.SEQUENTIAL, duet_order=None
-        )
+    def stop(self):
+        self.logger.info(f"{self} STOP")
+        self.benchmark.stop()
 
     def cleanup(self):
         self.logger.info(f"{self} CLEANUP")
         self.benchmark.cleanup(self.config.remove_containers)
+
+    def get_results(self):
+        self.logger.info(f"{self} RESULTS")
+        self.benchmark.get_results(
+            self.results_dir, self.runid, Type.SEQUENTIAL, duet_order=None
+        )
 
     def __str__(self):
         return f"seqn:{self.config.benchmark}:{self.runid}"
@@ -214,14 +242,24 @@ class DuetBenchmarkRunner:
         else:
             raise NotImplementedError()
 
-        self.a.wait()
-        self.b.wait()
+        # On timeout raise TimeoutExpired and terminate both benchmarks in cleanup
+        # If a completes before timeout B might still hit timeout, thus compute time left
+        a_start = datetime.datetime.now()
+        self.a.wait(timeout=self.config.timeout)
+        a_run_time = datetime.datetime.now() - a_start
+        self.b.wait(timeout=min(1, self.config.timeout - a_run_time.seconds))
 
+    def get_results(self):
         self.logger.info(f"{self} GET")
         for benchmark in [self.a, self.b]:
             benchmark.get_results(
                 self.results_dir, self.runid, Type.DUET, self.duet_order.value
             )
+
+    def stop(self):
+        self.logger.info(f"{self} STOP")
+        for benchmark in [self.a, self.b]:
+            benchmark.stop()
 
     def cleanup(self):  # nothrow
         self.logger.info(f"{self} CLEANUP")
@@ -275,18 +313,41 @@ class Harness:
         return plan
 
     def execute(self, plan):
+        errors = []
         signal.signal(signal.SIGINT, self.handle_interrupt_and_exit)
+        self.benchmark = None
         for benchmark in plan:
+            self.benchmark = benchmark
             try:
                 benchmark.run()
+            except subprocess.TimeoutExpired:
+                errors.append(f"TIMEOUT:{benchmark}")
+                self.logger.warning(f"{benchmark} hit timeout")
+                benchmark.stop()
             except RuntimeError as e:
+                errors.append(f"RUN:{benchmark}")
                 self.logger.error(f"{benchmark} failed with exception: {e}")
-                traceback.print_exc()
             except Exception as e:
+                errors.append(f"CRITICAL:{benchmark}")
                 self.logger.critical(f"{benchmark} unexpected exception: {e}")
                 traceback.print_exc()
             finally:
+                # Run may have failed on Exception but some results might be
+                # present try to obtain them.
+                try:
+                    benchmark.get_results()
+                except RuntimeError:
+                    self.logger.warning(f"{benchmark} failed to get results")
+                    errors.append(f"RESULTS:{benchmark}")
+
                 benchmark.cleanup()
+
+        if errors:
+            self.logger.error(
+                f"Harness: {len(errors)} erorrs out of {len(plan)} benchmarks, errors: {errors}"
+            )
+        else:
+            self.logger.info(f"Harness: success of {len(plan)} benchmarks")
 
     def handle_interrupt_and_exit(self, *args):
         self.logger.info("CAUGHT INTERRUPT, CLEANUP AND EXIT")
@@ -376,7 +437,6 @@ def main():
         config = DuetBenchConfig(args.config)
     except Exception as e:
         logging.critical(f"Critical config error: {e}")
-        traceback.print_exc()
         sys.exit(1)
 
     config = override_config_from_args(config, args)
