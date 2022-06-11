@@ -467,6 +467,7 @@ def main():
         if not args.artifacts_only:
             harness = Harness(config, results_dir, logger)
             harness.run()
+        logging.info(f"Results: {results_dir}")
     except Exception as e:
         logging.critical(f"Critical run duets error: {e}")
         traceback.print_exc()
