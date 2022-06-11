@@ -1,0 +1,77 @@
+duetbench:
+  suite: tmp
+  verbose: true
+  seed: 42
+  remove_containers: true
+  schedule: randomized_interleaving_trials
+
+  artifacts:
+    date: date
+    hostname: hostname
+
+  duets:
+    - debug
+    - renaissance
+    - dacapo
+    - scalabench
+    - speccpu
+
+debug:
+  image: renaissance
+  suite: debug
+  run_base: ""
+  timeout: 3
+  results:
+    - /duet/results
+
+  A:
+    run: echo RunningA > /duet/results && sleep 5
+
+  B:
+    run: echo RunningB > /duet/results
+
+
+renaissance:
+  suite: renaissance
+  image: renaissance
+  run_base: java -jar renaissance-gpl-0.13.0.jar --json /duet/results.json --repetitions 100
+  timeout: 15
+  results:
+    - /duet/results.json
+
+  A:
+    run:  chi-square
+
+
+dacapo:
+  suite: dacapo
+  image: dacapo
+  run_base: java -jar dacapo-9.12-d3s.jar --iterations 30 --no-validation -o /duet/results.csv
+  results:
+    - /duet/results.csv
+  timeout: 15
+
+  A:
+    run: avrora
+
+scalabench:
+  suite: scalabench
+  image: scalabench
+  run_base: java -jar /duet/scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 30 --no-validation -o /duet/results.csv
+  results:
+    - /duet/results.csv
+  timeout: 15
+
+  A:
+    run: avrora
+
+speccpu:
+  suite: speccpu
+  image: speccpu
+  run_base: /duet/speccpu/bin/runcpu --config duet-gcc-linux-x86.cfg --iterations 10 --tuning peak --action onlyrun
+  timeout: 15
+  results:
+    - /duet/speccpu/result
+
+  A:
+    run: 541.leela_r

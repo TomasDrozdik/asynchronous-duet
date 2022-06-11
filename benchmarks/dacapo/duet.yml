@@ -27,7 +27,8 @@ duetbench:
   # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
   # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
   # -XX:+UseParallelGC -XX:+UseParallelOldGC
-  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 30 -o /duet/results.csv
+  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar --iterations 100 --no-validation -o /duet/results.csv
+  timeout: 600
 
   artifacts:
     date: date
