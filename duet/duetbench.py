@@ -5,6 +5,7 @@ import datetime
 import logging
 import os
 import random
+import shutil
 import signal
 import subprocess
 import sys
@@ -143,10 +144,7 @@ class Benchmark:
 
             local_tmp_path = f"{results_dir}/{filename}"
 
-            if os.path.exists(local_tmp_path):
-                raise RuntimeError(
-                    f"Result name conflict, move of `{remote_result_path}` to `{local_tmp_path}` failed"
-                )
+            self.delete_if_exists(local_tmp_path)
 
             self.runner.run(
                 f"{DOCKER} cp {self.config.container}:{remote_result_path} {local_tmp_path}"
@@ -163,6 +161,7 @@ class Benchmark:
             )
 
             local_result_path = f"{results_dir}/{result_file.filename()}"
+            self.delete_if_exists(local_result_path)
             os.rename(local_tmp_path, local_result_path)
 
     def cleanup(self, rm: bool):  # nothrow
@@ -175,6 +174,11 @@ class Benchmark:
                 self.runner.run(f"{DOCKER} rm {self.config.container}")
             except RuntimeError as e:
                 self.logger.warn(f"CLEANUP {DOCKER} rm hit exception: {e}")
+
+    def delete_if_exists(self, path: str):
+        if os.path.exists(path):
+            self.logger.warning(f"Delete {path} due to conflict")
+            shutil.rmtree(path)
 
 
 class SequentialBenchmarkRunner:
@@ -337,7 +341,7 @@ class Harness:
                 try:
                     benchmark.get_results()
                 except RuntimeError:
-                    self.logger.warning(f"{benchmark} failed to get results")
+                    self.logger.error(f"{benchmark} failed to get results")
                     errors.append(f"RESULTS:{benchmark}")
 
                 benchmark.cleanup()
