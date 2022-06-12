@@ -9,6 +9,7 @@ import shutil
 import signal
 import subprocess
 import sys
+from time import sleep
 import traceback
 from typing import List
 
@@ -111,14 +112,21 @@ class Benchmark:
         self.runner = Runner(self.logger)
         self.async_handle = None
 
-    def start_instance(self):
+    def start_instance(self, mount_shm=False):
         self.runner.run(
-            f"{DOCKER} run --name {self.config.container} -it -d {self.config.image} bash"
+            f"{DOCKER} run --name {self.config.container}{' -v /dev/shm:/dev/shm --ipc host' if mount_shm else ''} -it -d {self.config.image} bash"
         )
 
-    def run_async(self):
+    def run_async(self, barrier_name=None):
         split_cmd = f"{DOCKER} exec {self.config.container} bash -c".split()
-        split_cmd.append(f"{self.config.run_command}")
+        if barrier_name:
+            assert self.config.syncduet_run_command
+            run_cmd_with_barrier = self.config.syncduet_run_command.replace(
+                "$$", barrier_name
+            )
+            split_cmd.append(run_cmd_with_barrier)
+        else:
+            split_cmd.append(self.config.run_command)
         self.async_handle = self.runner.run_async(split_cmd)
 
     def wait(self, timeout=None):  # throws TimeoutExpired, RuntimeError
@@ -133,6 +141,7 @@ class Benchmark:
                 f"{DOCKER} exec {self.config.container} pgrep {benchmark_program}"
             )
             self.runner.run(f"{DOCKER} exec {self.config.container} kill -15 {pid}")
+            sleep(5)  # wait a bit for benchmark to process signal and write results
         except RuntimeError:
             self.logger.warning("STOP not successful")
 
@@ -144,7 +153,7 @@ class Benchmark:
 
             local_tmp_path = f"{results_dir}/{filename}"
 
-            self.delete_if_exists(local_tmp_path)
+            self._delete_if_exists(local_tmp_path)
 
             self.runner.run(
                 f"{DOCKER} cp {self.config.container}:{remote_result_path} {local_tmp_path}"
@@ -161,8 +170,18 @@ class Benchmark:
             )
 
             local_result_path = f"{results_dir}/{result_file.filename()}"
-            self.delete_if_exists(local_result_path)
+            self._delete_if_exists(local_result_path)
             os.rename(local_tmp_path, local_result_path)
+
+    def make_barrier(self, name):
+        self.runner.run(
+            f"{DOCKER} exec {self.config.container} /barrier/make-barrier {name} 2"
+        )
+
+    def remove_barrier(self, name):
+        self.runner.run(
+            f"{DOCKER} exec {self.config.container} /barrier/rm-barrier {name}"
+        )
 
     def cleanup(self, rm: bool):  # nothrow
         try:
@@ -175,10 +194,13 @@ class Benchmark:
             except RuntimeError as e:
                 self.logger.warn(f"CLEANUP {DOCKER} rm hit exception: {e}")
 
-    def delete_if_exists(self, path: str):
+    def _delete_if_exists(self, path: str):
         if os.path.exists(path):
             self.logger.warning(f"Delete {path} due to conflict")
-            shutil.rmtree(path)
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
 
 class SequentialBenchmarkRunner:
@@ -220,12 +242,20 @@ class SequentialBenchmarkRunner:
 
 class DuetBenchmarkRunner:
     def __init__(
-        self, config: DuetConfig, results_dir: str, runid: int, duet_order: DuetOrder
+        self,
+        config: DuetConfig,
+        results_dir: str,
+        runid: int,
+        duet_order: DuetOrder,
+        synchronized: bool,
     ):
         self.config = config
         self.results_dir = results_dir
         self.runid = runid
         self.duet_order = duet_order
+        self.synchronized = synchronized
+
+        self.barrier_name = None
 
         self.a = Benchmark(config.a, logging.getLogger(config.a.container))
         self.b = Benchmark(config.b, logging.getLogger(config.b.container))
@@ -234,30 +264,39 @@ class DuetBenchmarkRunner:
 
     def run(self):
         self.logger.info(f"{self} RUN")
-        self.a.start_instance()
-        self.b.start_instance()
+        self.a.start_instance(mount_shm=self.synchronized)
+        self.b.start_instance(mount_shm=self.synchronized)
+
+        if self.synchronized:
+            self.barrier_name = f"{str(self)}:barrier"
+            self.a.make_barrier(name=self.barrier_name)
 
         if self.duet_order == DuetOrder.AB:
-            self.a.run_async()
-            self.b.run_async()
+            self.a.run_async(self.barrier_name)
+            self.b.run_async(self.barrier_name)
         elif self.duet_order == DuetOrder.BA:
-            self.b.run_async()
-            self.a.run_async()
+            self.b.run_async(self.barrier_name)
+            self.a.run_async(self.barrier_name)
         else:
             raise NotImplementedError()
 
-        # On timeout raise TimeoutExpired and terminate both benchmarks in cleanup
-        # If a completes before timeout B might still hit timeout, thus compute time left
-        a_start = datetime.datetime.now()
-        self.a.wait(timeout=self.config.timeout)
-        a_run_time = datetime.datetime.now() - a_start
-        self.b.wait(timeout=min(1, self.config.timeout - a_run_time.seconds))
+        if self.config.timeout:
+            # On timeout raise TimeoutExpired and terminate both benchmarks in cleanup
+            # If a completes before timeout B might still hit timeout, thus compute time left
+            a_start = datetime.datetime.now()
+            self.a.wait(timeout=self.config.timeout)
+            a_run_time = datetime.datetime.now() - a_start
+            self.b.wait(timeout=min(1, self.config.timeout - a_run_time.seconds))
+        else:
+            self.a.wait()
+            self.b.wait()
 
     def get_results(self):
         self.logger.info(f"{self} GET")
         for benchmark in [self.a, self.b]:
+            type = Type.SYNCHRONIZED_DUET if self.barrier_name else Type.DUET
             benchmark.get_results(
-                self.results_dir, self.runid, Type.DUET, self.duet_order.value
+                self.results_dir, self.runid, type, self.duet_order.value
             )
 
     def stop(self):
@@ -267,11 +306,17 @@ class DuetBenchmarkRunner:
 
     def cleanup(self):  # nothrow
         self.logger.info(f"{self} CLEANUP")
+        if self.barrier_name:
+            self.a.remove_barrier(self.barrier_name)
         for benchmark in [self.a, self.b]:
             benchmark.cleanup(self.config.remove_containers)
 
     def __str__(self):
-        return f"duet:{self.config.benchmark}:{self.runid}"
+        return (
+            f"syncduet:{self.config.benchmark}:{self.runid}"
+            if self.synchronized
+            else f"duet:{self.config.benchmark}:{self.runid}"
+        )
 
 
 class Harness:
@@ -291,8 +336,7 @@ class Harness:
             raise NotImplementedError()
 
         self.logger.info(f"PLAN: {[str(x) for x in plan]}")
-
-        self.execute(plan)
+        return self.execute(plan)
 
     def plan(self):
         plan = []
@@ -300,7 +344,21 @@ class Harness:
             for duet_runid in range(duet_config.duet_repetitions):
                 plan.append(
                     DuetBenchmarkRunner(
-                        duet_config, self.results_dir, duet_runid, DuetOrder.AB
+                        duet_config,
+                        self.results_dir,
+                        duet_runid,
+                        DuetOrder.AB,
+                        synchronized=False,
+                    )
+                )
+            for syncduet_runid in range(duet_config.syncduet_repetitions):
+                plan.append(
+                    DuetBenchmarkRunner(
+                        duet_config,
+                        self.results_dir,
+                        syncduet_runid,
+                        DuetOrder.AB,
+                        synchronized=True,
                     )
                 )
             for seq_runid in range(duet_config.sequential_repetitions):

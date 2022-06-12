@@ -5,6 +5,10 @@ duetbench:
   remove_containers: true
   schedule: randomized_interleaving_trials
 
+  duet_repetitions: 1
+  syncduet_repetitions: 0
+  sequential_repetitions: 0
+
   artifacts:
     date: date
     hostname: hostname
@@ -14,7 +18,7 @@ duetbench:
     - renaissance
     - dacapo
     - scalabench
-    - speccpu
+    #- speccpu
 
 debug:
   image: renaissance
@@ -46,7 +50,9 @@ renaissance:
 dacapo:
   suite: dacapo
   image: dacapo
+  syncduet_repetitions: 1
   run_base: java -jar dacapo-9.12-d3s.jar --iterations 30 --no-validation -o /duet/results.csv
+  syncduet_run_base: java -agentpath:/barrier/java-ubench-agent/out/agent/libubench-agent.so  -jar dacapo-9.12-d3s.jar --iteration-barrier $$ --iterations 30 --no-validation -o /duet/results.csv
   results:
     - /duet/results.csv
   timeout: 15
@@ -57,7 +63,9 @@ dacapo:
 scalabench:
   suite: scalabench
   image: scalabench
+  syncduet_repetitions: 1
   run_base: java -jar /duet/scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 30 --no-validation -o /duet/results.csv
+  syncduet_run_base: java -agentpath:/barrier/java-ubench-agent/out/agent/libubench-agent.so -jar /duet/scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 30 --no-validation -o /duet/results.csv
   results:
     - /duet/results.csv
   timeout: 15
