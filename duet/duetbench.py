@@ -16,6 +16,7 @@ from typing import List
 from duet.duetconfig import (
     ARTIFACTS_DIR,
     BenchmarkConfig,
+    ConfigException,
     DuetBenchConfig,
     DuetConfig,
     DuetOrder,
@@ -403,13 +404,7 @@ class Harness:
                     errors.append(f"RESULTS:{benchmark}")
 
                 benchmark.cleanup()
-
-        if errors:
-            self.logger.error(
-                f"Harness: {len(errors)} erorrs out of {len(plan)} benchmarks, errors: {errors}"
-            )
-        else:
-            self.logger.info(f"Harness: success of {len(plan)} benchmarks")
+        return errors
 
     def handle_interrupt_and_exit(self, *args):
         self.logger.info("CAUGHT INTERRUPT, CLEANUP AND EXIT")
@@ -417,12 +412,12 @@ class Harness:
         sys.exit(1)
 
 
-def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger):
+def create_results_dir(outdir: str, force: bool):
     if outdir:
         results_dir = outdir
     else:
         time_tag = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        results_dir = f"results.{config.suite}.{time_tag}"
+        results_dir = f"results.{time_tag}"
 
     try:
         os.makedirs(f"{results_dir}/{ARTIFACTS_DIR}")
@@ -433,16 +428,20 @@ def create_results_dir(config: DuetBenchConfig, outdir: str, force: bool, logger
             raise RuntimeError(
                 f"Failed to create results directory `{results_dir}`"
             ) from e
-
-    logger.info(f"Results will be placed in `{results_dir}`")
     return results_dir
 
 
-def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
+def gather_artifacts(config: DuetBenchConfig, results_dir: str, logger):
     logger.info("Gather artifacts")
-    for artifact, command in artifacts_config.items():
+    for artifact, command in config.artifacts.items():
         result_path = f"{results_dir}/{ARTIFACTS_DIR}/{artifact}"
-        logger.info(f"Artifact `{artifact}` from `{command}` to `{result_path}`")
+
+        if os.path.exists(result_path):
+            logger.info(f"Artifact `{artifact}` already exists")
+            continue
+        else:
+            logger.info(f"Artifact `{artifact}` from `{command}` to `{result_path}`")
+
         try:
             with open(result_path, "w") as output:
                 p = subprocess.run(
@@ -453,15 +452,40 @@ def gather_artifacts(artifacts_config: dict, results_dir: str, logger):
                     f"Artifact `{artifact}` command failed with error {p.returncode}\n"
                     f"sterr: {p.stderr.decode('utf-8')}"
                 )
-        except Exception:
-            logging.error(f"Artifact `{artifact}` command failed with exception")
-            traceback.print_exc()
+        except Exception as e:
+            logging.error(f"Artifact `{artifact}` command failed with exception {e}")
+
+
+def run_config(config: DuetBenchConfig, results_dir, logger):
+    gather_artifacts(config, results_dir, logger)
+
+    if config.seed:
+        logger.info(f"Seed: {config.seed}")
+        random.seed(config.seed)
+
+    if config.docker_command:
+        global DOCKER
+        logger.info(f"Docker command: {config.docker_command}")
+        DOCKER = config.docker_command
+
+    errors = []
+    try:
+        harness = Harness(config, results_dir, logger)
+        errors += harness.run()
+    except Exception as e:
+        logging.critical(f"Critical run duets error: {e}")
+        traceback.print_exc()
+
+    if errors:
+        logger.error(f"Summary: {len(errors)} errors: {errors}")
+    else:
+        logger.info("Summary: finished without errors")
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "config", type=str, help="YAML config file for the duet benchmark"
+        "configs", type=str, nargs="+", help="YAML config files for the duet benchmark"
     )
     parser.add_argument("-o", "--outdir", type=str, help="Output directory")
     parser.add_argument(
@@ -469,12 +493,6 @@ def parse_arguments():
         "--force",
         action="store_true",
         help="Overwrite output directory if present",
-    )
-    parser.add_argument(
-        "-a",
-        "--artifacts-only",
-        action="store_true",
-        help="Only gather artifacts, do not run duet",
     )
     parser.add_argument(
         "-d",
@@ -494,42 +512,32 @@ def override_config_from_args(config: DuetBenchConfig, args):
 
 
 def main():
-    args = parse_arguments()
-    try:
-        config = DuetBenchConfig(args.config)
-    except Exception as e:
-        logging.critical(f"Critical config error: {e}")
-        sys.exit(1)
-
-    config = override_config_from_args(config, args)
-
     logging.basicConfig(
         format="%(asctime)s  %(name)-20s %(levelname)-8s  %(message)s",
-        level=logging.DEBUG if config.verbose else logging.INFO,
+        level=logging.DEBUG,
         datefmt="%b %d %H:%M:%S",
     )
-    logger = logging.getLogger("duet")
 
-    if config.seed:
-        logger.info(f"Seed: {config.seed}")
-        random.seed(config.seed)
+    args = parse_arguments()
 
-    if config.docker_command:
-        global DOCKER
-        logger.info(f"Docker command: {config.docker_command}")
-        DOCKER = config.docker_command
+    results_dir = create_results_dir(args.outdir, args.force)
 
-    try:
-        results_dir = create_results_dir(config, args.outdir, args.force, logger)
-        gather_artifacts(config.artifacts, results_dir, logger)
-        if not args.artifacts_only:
-            harness = Harness(config, results_dir, logger)
-            harness.run()
-        logging.info(f"Results: {results_dir}")
-    except Exception as e:
-        logging.critical(f"Critical run duets error: {e}")
-        traceback.print_exc()
-        sys.exit(1)
+    for config_id, config in enumerate(args.configs):
+        logging.info(f"START DUET {config}[{config_id}]")
+        try:
+            config = DuetBenchConfig(config)
+        except ConfigException as e:
+            logging.error(f"Config error: {e}")
+            continue
+        except Exception as e:
+            logging.critical(f"Critical config error: {e}")
+            continue
+
+        config = override_config_from_args(config, args)
+        logger = logging.getLogger(f"duet[{config_id}]")
+        run_config(config, results_dir, logger)
+
+    logging.info(f"RESULTS: {results_dir}")
 
 
 if __name__ == "__main__":

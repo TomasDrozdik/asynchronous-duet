@@ -3,13 +3,12 @@
 import argparse
 from datetime import datetime
 import os
-import sys
 import traceback
 import pandas as pd
 import logging
 from enum import Enum
 
-from duet.duetconfig import ARTIFACTS_DIR, ResultFile, DuetBenchConfig
+from duet.duetconfig import ARTIFACTS_DIR, ResultFile
 from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
 from duet.parsers_artifact import (
     parse_lscpu,
@@ -54,11 +53,11 @@ class SerializeEnum(Enum):
     CSV = "csv"
 
 
-def process_results(results, config: DuetBenchConfig) -> pd.DataFrame:
+def process_results(results) -> pd.DataFrame:
     full_df = pd.DataFrame()
     for result in results:
         try:
-            result_df = process_result(result, config, logging.getLogger(result))
+            result_df = process_result(result, logging.getLogger(result))
             assert set(result_df.columns).issuperset(
                 REQUIRED_SCHEMA
             ), f"Columns: {result_df.columns}"
@@ -70,9 +69,7 @@ def process_results(results, config: DuetBenchConfig) -> pd.DataFrame:
     return full_df
 
 
-def process_result(
-    result_dir: str, duet_config: DuetBenchConfig, logger
-) -> pd.DataFrame:
+def process_result(result_dir: str, logger) -> pd.DataFrame:
     result_df = pd.DataFrame()
 
     artifacts = {}
@@ -80,7 +77,7 @@ def process_result(
         result_path = f"{result_dir}/{file}"
 
         if file == ARTIFACTS_DIR:
-            artifacts = parse_artifacts(result_path, duet_config, logger)
+            artifacts = parse_artifacts(result_path, logger)
             continue
 
         # Otherwise a file has to be ResultFile with fixed format
@@ -105,20 +102,18 @@ def process_result(
     return result_df
 
 
-def parse_artifacts(artifacts_dir: str, duet_config: DuetBenchConfig, logger):
+def parse_artifacts(artifacts_dir: str, logger):
     parsed_artifacts = {}
-    # If filename matches some artifact from configuration, see if there is method to parse it
     for file in os.listdir(artifacts_dir):
-        if file in duet_config.artifacts.keys():
-            if file in ARTIFACT_PARSERS:
-                with open(f"{artifacts_dir}/{file}", "r") as f:
-                    contents = f.read()
-                parsed_artifacts[file] = ARTIFACT_PARSERS[file](contents)
-                logger.debug(f"Parsed artifact {file} as {parsed_artifacts[file]}")
-            else:
-                logger.info(
-                    f"Found artifact {file} but there is no registered parser for it"
-                )
+        if file in ARTIFACT_PARSERS:
+            with open(f"{artifacts_dir}/{file}", "r") as f:
+                contents = f.read()
+            parsed_artifacts[file] = ARTIFACT_PARSERS[file](contents)
+            logger.debug(f"Parsed artifact {file} as {parsed_artifacts[file]}")
+        else:
+            logger.info(
+                f"Found artifact {file} but there is no registered parser for it"
+            )
     return parsed_artifacts
 
 
@@ -136,13 +131,6 @@ def store_results(result_df: pd.DataFrame, output: str, format: SerializeEnum):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("results", type=str, nargs="+", help="Results directory")
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        required=True,
-        help="YAML config file for the duet benchmark",
-    )
     parser.add_argument(
         "-o",
         "--output",
@@ -170,14 +158,7 @@ def main():
         datefmt="%b %d %H:%M:%S",
     )
 
-    try:
-        config = DuetBenchConfig(args.config)
-    except Exception as e:
-        logging.critical(f"Critical config error: {e}")
-        traceback.print_exc()
-        sys.exit(1)
-
-    df = process_results(args.results, config)
+    df = process_results(args.results)
     store_results(
         df, args.output, SerializeEnum.JSON if args.json else SerializeEnum.CSV
     )
