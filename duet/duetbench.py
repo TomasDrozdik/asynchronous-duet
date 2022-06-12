@@ -295,7 +295,7 @@ class DuetBenchmarkRunner:
     def get_results(self):
         self.logger.info(f"{self} GET")
         for benchmark in [self.a, self.b]:
-            type = Type.SYNCHRONIZED_DUET if self.barrier_name else Type.DUET
+            type = Type.SYNCDUET if self.barrier_name else Type.DUET
             benchmark.get_results(
                 self.results_dir, self.runid, type, self.duet_order.value
             )
@@ -314,9 +314,9 @@ class DuetBenchmarkRunner:
 
     def __str__(self):
         return (
-            f"syncduet:{self.config.benchmark}:{self.runid}"
+            f"{Type.SYNCDUET.value}:{self.config.benchmark}:{self.runid}"
             if self.synchronized
-            else f"duet:{self.config.benchmark}:{self.runid}"
+            else f"{Type.DUET.value}:{self.config.benchmark}:{self.runid}"
         )
 
 
