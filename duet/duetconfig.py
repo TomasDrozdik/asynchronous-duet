@@ -28,7 +28,7 @@ class Schedule(enum.Enum):
 class Type(enum.Enum):
     SEQUENTIAL = "sequential"
     DUET = "duet"
-    SYNCHRONIZED_DUET = "syncduet"
+    SYNCDUET = "syncduet"
 
 
 class ConfigException(Exception):
