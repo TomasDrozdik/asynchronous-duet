@@ -287,7 +287,7 @@ class DuetBenchmarkRunner:
             a_start = datetime.datetime.now()
             self.a.wait(timeout=self.config.timeout)
             a_run_time = datetime.datetime.now() - a_start
-            self.b.wait(timeout=min(1, self.config.timeout - a_run_time.seconds))
+            self.b.wait(timeout=max(1, self.config.timeout - a_run_time.seconds))
         else:
             self.a.wait()
             self.b.wait()
