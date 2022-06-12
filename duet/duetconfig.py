@@ -28,6 +28,7 @@ class Schedule(enum.Enum):
 class Type(enum.Enum):
     SEQUENTIAL = "sequential"
     DUET = "duet"
+    SYNCHRONIZED_DUET = "syncduet"
 
 
 class ConfigException(Exception):
@@ -50,7 +51,7 @@ def unique(values):
 
 
 class BenchmarkConfig:
-    VALUES = ["image", "run", "results", "run_base"]
+    VALUES = ["image", "run", "results", "run_base", "syncduet_run_base"]
 
     def __init__(self, parent, config: dict, pair: Pair):
         check_valid_keys(parent, config, BenchmarkConfig.VALUES)
@@ -71,7 +72,15 @@ class BenchmarkConfig:
 
         self.base_run_command = self.get_or_inherit("run_base", "")
 
+        self.syncduet_base_run_command = self.get_or_inherit("syncduet_run_base", "")
+
         self.run_command: str = f"{self.base_run_command} {self.config['run']}"
+
+        self.syncduet_run_command: str = (
+            f"{self.syncduet_base_run_command} {self.config['run']}"
+            if self.syncduet_base_run_command
+            else None
+        )
 
         self.result_files: List[str] = self.get_or_inherit("results")
 
@@ -104,8 +113,8 @@ class DuetConfig:
         "suite",
         "remove_containers",
         "duet_repetitions",
+        "syncduet_repetitions",
         "sequential_repetitions",
-        "run_base",
         "timeout",
     ] + BenchmarkConfig.VALUES
 
@@ -127,6 +136,10 @@ class DuetConfig:
         )
 
         self.duet_repetitions: int = self.get_or_inherit("duet_repetitions", default=1)
+
+        self.syncduet_repetitions: int = self.get_or_inherit(
+            "syncduet_repetitions", default=0
+        )
 
         self.sequential_repetitions: int = self.get_or_inherit(
             "sequential_repetitions", default=0
@@ -165,6 +178,14 @@ class DuetConfig:
         else:
             raise ConfigException(f"{self} can't inherit {key}")
 
+    def check(self):
+        if self.syncduet_repetitions and not all(
+            self.a.syncduet_run_command, self.b.syncduet_run_command
+        ):
+            raise ConfigException(
+                f"{self} has {self.syncduet_repetitions} synchronized duet repetitions but not the syncduet_run command for both {self.a} and {self.b}"
+            )
+
     def __str__(self):
         return str(vars(self))
 
@@ -178,7 +199,6 @@ class DuetBenchConfig:
         "duets",
         "artifacts",
         "schedule",
-        "run_base",
     ]
     VALUES = DuetConfig.VALUES
 

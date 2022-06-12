@@ -1,0 +1,7 @@
+#!/bin/bash
+
+BARRIER_NAME_PREFIX="java-ubench-agent"
+
+NAME=${1:?"./rm-barrier <barrier_name>"}
+
+rm /dev/shm/${BARRIER_NAME_PREFIX}${NAME}
