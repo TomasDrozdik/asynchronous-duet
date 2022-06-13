@@ -34,6 +34,7 @@ duetbench:
   # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
   # -XX:+UseParallelGC -XX:+UseParallelOldGC
   run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json /duet/results.json -c test --repetitions 1
+  timeout: 300
 
   duets:
     - akka-uct
@@ -51,7 +52,7 @@ duetbench:
     - mnemonics
     - movie-lens
     - naive-bayes
-    - neo4j-analytics
+    #- neo4j-analytics fails on Java heap out of space
     - page-rank
     - par-mnemonics
     - philosophers
