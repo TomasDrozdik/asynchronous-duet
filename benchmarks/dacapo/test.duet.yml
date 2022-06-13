@@ -9,6 +9,7 @@ duetbench:
   remove_containers: true
 
   duet_repetitions: 1
+  syncduet_repetitions: 1
   sequential_repetitions: 0
 
   image: dacapo
@@ -26,7 +27,9 @@ duetbench:
   # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
   # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
   # -XX:+UseParallelGC -XX:+UseParallelOldGC
-  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar -n 1 -o /duet/results.csv
+  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar --iterations 1 -o /duet/results.csv
+  syncduet_run_base: java -agentpath:/barrier/java-ubench-agent/out/agent/libubench-agent.so -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar dacapo-9.12-d3s.jar --iteration-barrier $$ --iterations 1 -o /duet/results.csv
+  timeout: 300
 
   artifacts:
     date: date
