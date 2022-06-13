@@ -182,7 +182,7 @@ class Benchmark:
 
     def remove_barrier(self, name):
         self.runner.run(
-            f"{DOCKER} exec {self.config.container} /barrier/rm-barrier {name}"
+            f"{DOCKER} exec {self.config.container} bash /barrier/rm-barrier {name}"
         )
 
     def cleanup(self, rm: bool):  # nothrow
@@ -319,7 +319,10 @@ class DuetBenchmarkRunner:
     def cleanup(self):  # nothrow
         self.logger.info(f"{self} CLEANUP")
         if self.barrier_name:
-            self.a.remove_barrier(self.barrier_name)
+            try:
+                self.a.remove_barrier(self.barrier_name)
+            except RuntimeError:
+                self.logger.error(f"Failed to remove barrier {self.barrier_name}")
         for benchmark in [self.a, self.b]:
             benchmark.cleanup(self.config.remove_containers)
 
