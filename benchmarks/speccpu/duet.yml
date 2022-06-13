@@ -13,6 +13,7 @@
 # Omit some benchmarks fail to build/traing or have too big size (>300 MB) to reduce the image size
 
 duetbench:
+  name: speccpu
   suite: speccpu
   verbose: false
   seed: 42

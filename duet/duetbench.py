@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import argparse
+from collections import defaultdict
 import datetime
 import logging
 import os
@@ -106,7 +107,7 @@ class Runner:
 
 
 class Benchmark:
-    def __init__(self, config: BenchmarkConfig, logger):
+    def __init__(self, config: BenchmarkConfig, logger: logging.Logger):
         self.config = config
         self.logger = logger
 
@@ -205,17 +206,23 @@ class Benchmark:
 
 
 class SequentialBenchmarkRunner:
-    def __init__(self, config: DuetConfig, results_dir: str, runid: int, pair: Pair):
+    def __init__(
+        self,
+        config: DuetConfig,
+        results_dir: str,
+        runid: int,
+        pair: Pair,
+        base_logger: logging.Logger,
+    ):
         self.config = config
         self.results_dir = results_dir
         self.runid = runid
+        self.logger = logging.getLogger(f"{base_logger.name}.{self}")
 
         benchmark_config = self.config.a if pair == Pair.A else self.config.b
         self.benchmark = Benchmark(
-            benchmark_config, logging.getLogger(self.config.a.container)
+            benchmark_config, logging.getLogger(f"{self.logger.name}.{pair.value}")
         )
-
-        self.logger = logging.getLogger(str(self))
 
     def run(self):
         self.logger.info(f"{self} RUN")
@@ -238,7 +245,7 @@ class SequentialBenchmarkRunner:
         )
 
     def __str__(self):
-        return f"seqn:{self.config.benchmark}:{self.runid}"
+        return f"seqn.{self.config.benchmark}.{self.runid}"
 
 
 class DuetBenchmarkRunner:
@@ -249,19 +256,23 @@ class DuetBenchmarkRunner:
         runid: int,
         duet_order: DuetOrder,
         synchronized: bool,
+        base_logger: logging.Logger,
     ):
         self.config = config
         self.results_dir = results_dir
         self.runid = runid
         self.duet_order = duet_order
         self.synchronized = synchronized
+        self.logger = logging.getLogger(f"{base_logger.name}.{self}")
 
         self.barrier_name = None
 
-        self.a = Benchmark(config.a, logging.getLogger(config.a.container))
-        self.b = Benchmark(config.b, logging.getLogger(config.b.container))
-
-        self.logger = logging.getLogger(str(self))
+        self.a = Benchmark(
+            config.a, logging.getLogger(f"{self.logger.name}.{Pair.A.value}")
+        )
+        self.b = Benchmark(
+            config.b, logging.getLogger(f"{self.logger.name}.{Pair.B.value}")
+        )
 
     def run(self):
         self.logger.info(f"{self} RUN")
@@ -314,9 +325,9 @@ class DuetBenchmarkRunner:
 
     def __str__(self):
         return (
-            f"{Type.SYNCDUET.value}:{self.config.benchmark}:{self.runid}"
+            f"{Type.SYNCDUET.value}.{self.config.benchmark}.{self.runid}"
             if self.synchronized
-            else f"{Type.DUET.value}:{self.config.benchmark}:{self.runid}"
+            else f"{Type.DUET.value}.{self.config.benchmark}.{self.runid}"
         )
 
 
@@ -350,6 +361,7 @@ class Harness:
                         duet_runid,
                         DuetOrder.AB,
                         synchronized=False,
+                        base_logger=self.logger,
                     )
                 )
             for syncduet_runid in range(duet_config.syncduet_repetitions):
@@ -360,17 +372,26 @@ class Harness:
                         syncduet_runid,
                         DuetOrder.AB,
                         synchronized=True,
+                        base_logger=self.logger,
                     )
                 )
             for seq_runid in range(duet_config.sequential_repetitions):
                 plan.append(
                     SequentialBenchmarkRunner(
-                        duet_config, self.results_dir, seq_runid, Pair.A
+                        duet_config,
+                        self.results_dir,
+                        seq_runid,
+                        Pair.A,
+                        base_logger=self.logger,
                     )
                 )
                 plan.append(
                     SequentialBenchmarkRunner(
-                        duet_config, self.results_dir, seq_runid, Pair.B
+                        duet_config,
+                        self.results_dir,
+                        seq_runid,
+                        Pair.B,
+                        base_logger=self.logger,
                     )
                 )
         return plan
@@ -453,7 +474,7 @@ def gather_artifacts(config: DuetBenchConfig, results_dir: str, logger):
                     f"sterr: {p.stderr.decode('utf-8')}"
                 )
         except Exception as e:
-            logging.error(f"Artifact `{artifact}` command failed with exception {e}")
+            logger.error(f"Artifact `{artifact}` command failed with exception {e}")
 
 
 def run_config(config: DuetBenchConfig, results_dir, logger):
@@ -473,13 +494,10 @@ def run_config(config: DuetBenchConfig, results_dir, logger):
         harness = Harness(config, results_dir, logger)
         errors += harness.run()
     except Exception as e:
-        logging.critical(f"Critical run duets error: {e}")
+        logger.critical(f"Critical run duets error: {e}")
         traceback.print_exc()
 
-    if errors:
-        logger.error(f"Summary: {len(errors)} errors: {errors}")
-    else:
-        logger.info("Summary: finished without errors")
+    return errors
 
 
 def parse_arguments():
@@ -500,6 +518,12 @@ def parse_arguments():
         type=str,
         help="Docker command to use - docker/podman",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Use DEBUG log level",
+    )
 
     return parser.parse_args()
 
@@ -507,25 +531,31 @@ def parse_arguments():
 def override_config_from_args(config: DuetBenchConfig, args):
     if args.docker:
         config.docker_command = args.docker
+    if args.verbose:
+        config.verbose = True
 
     return config
 
 
-def main():
+def configure_logging():
     logging.basicConfig(
-        format="%(asctime)s  %(name)-20s %(levelname)-8s  %(message)s",
-        level=logging.DEBUG,
+        format="%(asctime)s %(name)-35s %(levelname).1s  %(message)s",
+        level=logging.INFO,
         datefmt="%b %d %H:%M:%S",
     )
 
+
+def main():
+    configure_logging()
     args = parse_arguments()
 
     results_dir = create_results_dir(args.outdir, args.force)
+    config_errors = defaultdict(list)
 
-    for config_id, config in enumerate(args.configs):
-        logging.info(f"START DUET {config}[{config_id}]")
+    for config_path in args.configs:
+        logging.info(f"START DUET {config_path}")
         try:
-            config = DuetBenchConfig(config)
+            config = DuetBenchConfig(config_path)
         except ConfigException as e:
             logging.error(f"Config error: {e}")
             continue
@@ -534,8 +564,20 @@ def main():
             continue
 
         config = override_config_from_args(config, args)
-        logger = logging.getLogger(f"duet[{config_id}]")
-        run_config(config, results_dir, logger)
+
+        logger = logging.getLogger(f"{config.name}")
+        logger.setLevel(logging.DEBUG if config.verbose else logging.INFO)
+
+        config_errors[config.name] += run_config(
+            config, results_dir, args.filter, logger
+        )
+
+    logging.info("SUMMARY:")
+    for config_name, errors in config_errors.items():
+        if errors:
+            logger.error(f"{config_name}: {len(errors)} errors: {errors}")
+        else:
+            logger.info(f"{config_name}: 0 errors")
 
     logging.info(f"RESULTS: {results_dir}")
 

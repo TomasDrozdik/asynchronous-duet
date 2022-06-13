@@ -1,6 +1,7 @@
 # Scalabench duet config
 
 duetbench:
+  name: scalabench
   suite: scalabench
   verbose: false
   seed: 42
