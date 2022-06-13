@@ -30,13 +30,16 @@ pip install .
 
 # Build docker images, WARNING: need git LFS
 git lfs checkout
+# Provide zipped speccpu to ./benchmarks/speccpu/speccpu.zip
 ./build.sh -d <docker|podman>
 
-# Run test configs
-./run.sh -d <docker|podman> -o <existing_result_dir> -t
+# Make sure following docker images exist: ["barrier-agent", "renaissance", "dacapo", "scalabench", "speccpu"]
 
-# Run
-./run.sh -d <docker|podman> -o <existing_result_dir>
+# Run test configs, if result dir exists, command fails
+duetbench --verbose --outdir results.test --docker <podman|docker> ./benchmarks/renaissance/test.duet.yml ./benchmarks/dacapo/test.duet.yml ./benchmarks/scalabench/test.duet.yml ./benchmarks/speccpu/test.duet.yml 2>&1 | tee results.test.log
+
+# Run actual runs see [Runs iterations and timeouts](#runs-iterations-and-timeouts)
+duetbench --verbose --outdir results --docker <podman|docker> ./benchmarks/renaissance/duet.yml ./benchmarks/dacapo/duet.yml ./benchmarks/scalabench/duet.yml ./benchmarks/speccpu/duet.yml 2>&1 | tee results.log
 ```
 
 ## Build and Benchmark
@@ -293,7 +296,7 @@ There are no tests so far :-)
 
 # Notes duet configs
 
-### Runs iterations and timeouts
+### Used in original paper
 
 **Runs:**
 * 20 runs on Amazon t instances
@@ -303,3 +306,14 @@ There are no tests so far :-)
 **Iterations:**
 * Faster platforms (public cloud at full speed, private cloud and bare metal): 100 iterations or 10 minutes
 * Slower platforms (public clouds with token bucket processor allocation): 100 iterations or 60 minutes.
+
+### Runs iterations and timeouts
+
+**Repetitions:**
+* renaissance: duet 4, sequential 4
+* dacapo, scalabench: (async)duet 4, syncduet 4, sequential 4
+* speccpu: duet 2, sequential 2
+
+**Iterations:**
+* renaissance, dacapo, scalabench - 100 iterations or 10 minutes
+* speccpu - 10 iterations or 60 minutes
