@@ -1,6 +1,7 @@
 # SPECCPU2017 test duet config
 
 duetbench:
+  name: t_speccpu
   suite: speccpu
   verbose: false
   seed: 42

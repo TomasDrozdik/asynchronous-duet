@@ -1,4 +1,5 @@
 duetbench:
+  name: example
   suite: tmp
   verbose: true
   seed: 42
@@ -18,7 +19,7 @@ duetbench:
     - renaissance
     - dacapo
     - scalabench
-    #- speccpu
+    - speccpu
 
 debug:
   image: renaissance

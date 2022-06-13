@@ -1,6 +1,7 @@
 # Renaissance duet config
 
 duetbench:
+  name: renaissance
   suite: renaissance
   verbose: false
   seed: 42

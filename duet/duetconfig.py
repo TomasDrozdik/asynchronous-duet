@@ -26,7 +26,7 @@ class Schedule(enum.Enum):
 
 
 class Type(enum.Enum):
-    SEQUENTIAL = "sequential"
+    SEQUENTIAL = "seqn"
     DUET = "duet"
     SYNCDUET = "syncduet"
 
@@ -192,7 +192,7 @@ class DuetConfig:
 
 class DuetBenchConfig:
     UNIQUE_VALUES = [
-        "suite",
+        "name",
         "verbose",
         "seed",
         "docker_command",
@@ -213,7 +213,7 @@ class DuetBenchConfig:
             DuetBenchConfig.UNIQUE_VALUES + DuetBenchConfig.VALUES,
         )
 
-        self.suite: str = self.duetbenchconfig["suite"]
+        self.name: str = self.duetbenchconfig["name"]
 
         self.verbose: bool = self.duetbenchconfig.get("verbose")
 
@@ -278,7 +278,7 @@ class DuetBenchConfig:
 
 class ResultFile:
     FILENAME_REGEX = re.compile(
-        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<type>duet|sequential)\.(?P<duet_order>AB|BA|None)\.(?P<pair>[AB])\.(?P<result_file>.*)"
+        r"(?P<suite>[a-zA-Z0-9_-]+)\.(?P<benchmark>[a-zA-Z0-9_-]+)\.(?P<runid>\d+)\.(?P<type>duet|seqn|syncduet)\.(?P<duet_order>AB|BA|None)\.(?P<pair>[AB])\.(?P<result_file>.*)"
     )
 
     @staticmethod
