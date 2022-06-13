@@ -361,7 +361,10 @@ class Harness:
         plan = []
         benchmarks_filtered_out = 0
         for duet_config in self.config.duets:
-            if duet_config.benchmark not in self.benchmark_filter:
+            if (
+                self.benchmark_filter
+                and duet_config.benchmark not in self.benchmark_filter
+            ):
                 benchmarks_filtered_out += 1
                 continue
 
