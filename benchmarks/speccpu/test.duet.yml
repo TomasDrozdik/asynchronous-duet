@@ -20,6 +20,7 @@ duetbench:
     - /duet/speccpu/result
 
   run_base: /duet/speccpu/bin/runcpu --config duet-gcc-linux-x86.cfg --iterations 1 --tuning peak --action onlyrun
+  timeout: 600
 
   duets:
     - 500.perlbench_r
