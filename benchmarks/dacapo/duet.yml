@@ -1,6 +1,7 @@
 # Dacapo duet config
 
 duetbench:
+  name: dacapo
   suite: dacapo
   verbose: false
   seed: 42
