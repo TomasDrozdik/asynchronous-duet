@@ -332,9 +332,16 @@ class DuetBenchmarkRunner:
 
 
 class Harness:
-    def __init__(self, config: DuetBenchConfig, results_dir: str, logger):
+    def __init__(
+        self,
+        config: DuetBenchConfig,
+        results_dir: str,
+        benchmark_filter: List[str],
+        logger,
+    ):
         self.config = config
         self.results_dir = results_dir
+        self.benchmark_filter = benchmark_filter
         self.logger = logger
 
     def run(self):
@@ -352,7 +359,12 @@ class Harness:
 
     def plan(self):
         plan = []
+        benchmarks_filtered_out = 0
         for duet_config in self.config.duets:
+            if duet_config.benchmark not in self.benchmark_filter:
+                benchmarks_filtered_out += 1
+                continue
+
             for duet_runid in range(duet_config.duet_repetitions):
                 plan.append(
                     DuetBenchmarkRunner(
@@ -394,6 +406,10 @@ class Harness:
                         base_logger=self.logger,
                     )
                 )
+
+        self.logger.info(
+            f"Excluded {benchmarks_filtered_out} benchmarks not matching filter {self.benchmark_filter}"
+        )
         return plan
 
     def execute(self, plan):
@@ -477,7 +493,9 @@ def gather_artifacts(config: DuetBenchConfig, results_dir: str, logger):
             logger.error(f"Artifact `{artifact}` command failed with exception {e}")
 
 
-def run_config(config: DuetBenchConfig, results_dir, logger):
+def run_config(
+    config: DuetBenchConfig, results_dir, benchmark_filter: List[str], logger
+):
     gather_artifacts(config, results_dir, logger)
 
     if config.seed:
@@ -491,7 +509,7 @@ def run_config(config: DuetBenchConfig, results_dir, logger):
 
     errors = []
     try:
-        harness = Harness(config, results_dir, logger)
+        harness = Harness(config, results_dir, benchmark_filter, logger)
         errors += harness.run()
     except Exception as e:
         logger.critical(f"Critical run duets error: {e}")
@@ -523,6 +541,12 @@ def parse_arguments():
         "--verbose",
         action="store_true",
         help="Use DEBUG log level",
+    )
+    parser.add_argument(
+        "--filter",
+        type=str,
+        nargs="+",
+        help="Only run benchmarks matching these filters",
     )
 
     return parser.parse_args()
