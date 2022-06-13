@@ -5,8 +5,6 @@ set -e
 while getopts d: flag ; do
     case "${flag}" in
         d) docker=${OPTARG};;
-        s) speccpu_path=${OPTARG};;
-        c) speccpu_config=${OPTARG};;
     esac
 done
 
@@ -21,6 +19,4 @@ for suite in "renaissance" "scalabench" "dacapo" ; do
 done
 
 # Build speccpu suite (cca 40min) with special dependencies passed in
-speccpu_path=${speccpu_path:-speccpu.zip}
-speccpu_config=${speccpu_config:-duet.yml}
-pushd ./benchmarks/speccpu && docker build --build-arg SPECCPU_ZIP=${speccpu_path} --build-arg BUILD="$(python ./build_args_from_duet_conf.py ${speccpu_config})" -t speccpu . && popd
+pushd ./benchmarks/speccpu && docker build --build-arg SPECCPU_ZIP=speccpu.zip --build-arg BUILD="$(python ./build_args_from_duet_conf.py duet.yml)" -t speccpu . && popd
