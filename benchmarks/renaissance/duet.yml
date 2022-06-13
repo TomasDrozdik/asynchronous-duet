@@ -53,7 +53,7 @@ duetbench:
     - mnemonics
     - movie-lens
     - naive-bayes
-    - neo4j-analytics
+    #- neo4j-analytics fails on Java heap out of space
     - page-rank
     - par-mnemonics
     - philosophers
