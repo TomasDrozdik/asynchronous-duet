@@ -6,6 +6,10 @@ from pathlib import Path
 from duet.duetconfig import ResultFile
 
 
+MS_PER_NS = 1_000_000
+NS_PER_S = 1_000_000_000
+
+
 def add_result_file_columns(df: pd.DataFrame, result_file: ResultFile) -> pd.DataFrame:
     df["suite"] = result_file.suite
     df["benchmark"] = result_file.benchmark
@@ -53,7 +57,7 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
             )
 
     df = pd.DataFrame(results)
-    df["iteration_start_ns"] = (df["epoch_start_ms"] * 1_000_000) + df["uptime_ns"]
+    df["iteration_start_ns"] = (df["epoch_start_ms"] * MS_PER_NS) + df["uptime_ns"]
     df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
 
     df = add_result_file_columns(df, result_file)
@@ -70,7 +74,7 @@ def process_dacapo(result_file: ResultFile, logger):
     ].cumsum()
     df.drop("c", axis=1, inplace=True)
 
-    df["iteration_start_ns"] = df["total_ms"] + df["iteration_duration_ns"]
+    df["iteration_start_ns"] = df["total_ms"] * MS_PER_NS + df["iteration_duration_ns"]
     df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
     return df
 
