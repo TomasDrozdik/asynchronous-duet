@@ -69,12 +69,13 @@ def process_dacapo(result_file: ResultFile, logger):
     df.rename({"iteration_time_ns": "iteration_duration_ns"}, axis=1, inplace=True)
     df = add_result_file_columns(df, result_file)
     df["c"] = 1
-    df["iteration"] = df.groupby(by=["suite", "type", "order", "pair", "runid"])[
+    df["iteration"] = df.groupby(by=["suite", "benchmark", "type", "pair", "runid"])[
         "c"
     ].cumsum()
     df.drop("c", axis=1, inplace=True)
 
-    df["iteration_start_ns"] = df["total_ms"] * MS_PER_NS + df["iteration_duration_ns"]
+    assert "start_unix" in df.columns
+    df["iteration_start_ns"] = df["start_unix"] * MS_PER_NS
     df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
     return df
 
