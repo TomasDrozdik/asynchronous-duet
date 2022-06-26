@@ -423,7 +423,8 @@ class Harness:
         warnings = []
         signal.signal(signal.SIGINT, self.handle_interrupt_and_exit)
         self.benchmark = None
-        for benchmark in plan:
+        for idx, benchmark in enumerate(plan):
+            self.logger.info(f"PROGRESS {idx}/{len(plan)}")
             self.benchmark = benchmark
             try:
                 benchmark.run()
