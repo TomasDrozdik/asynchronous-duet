@@ -420,6 +420,7 @@ class Harness:
 
     def execute(self, plan):
         errors = []
+        warnings = []
         signal.signal(signal.SIGINT, self.handle_interrupt_and_exit)
         self.benchmark = None
         for benchmark in plan:
@@ -427,7 +428,7 @@ class Harness:
             try:
                 benchmark.run()
             except subprocess.TimeoutExpired:
-                errors.append(f"TIMEOUT:{benchmark}")
+                warnings.append(f"TIMEOUT:{benchmark}")
                 self.logger.warning(f"{benchmark} hit timeout")
                 benchmark.stop()
             except RuntimeError as e:
@@ -447,7 +448,7 @@ class Harness:
                     errors.append(f"RESULTS:{benchmark}")
 
                 benchmark.cleanup()
-        return errors
+        return errors, warnings
 
     def handle_interrupt_and_exit(self, *args):
         self.logger.info("CAUGHT INTERRUPT, CLEANUP AND EXIT")
@@ -514,14 +515,17 @@ def run_config(
         DOCKER = config.docker_command
 
     errors = []
+    warnings = []
     try:
         harness = Harness(config, results_dir, benchmark_filter, logger)
-        errors += harness.run()
+        e, w = harness.run()
+        errors += e
+        warnings += w
     except Exception as e:
         logger.critical(f"Critical run duets error: {e}")
         traceback.print_exc()
 
-    return errors
+    return errors, warnings
 
 
 def parse_arguments():
@@ -581,6 +585,7 @@ def main():
 
     results_dir = create_results_dir(args.outdir, args.force)
     config_errors = defaultdict(list)
+    config_warnings = defaultdict(list)
 
     for config_path in args.configs:
         logging.info(f"START DUET {config_path}")
@@ -598,12 +603,18 @@ def main():
         logger = logging.getLogger(f"{config.name}")
         logger.setLevel(logging.DEBUG if config.verbose else logging.INFO)
 
-        config_errors[config.name] += run_config(
-            config, results_dir, args.filter, logger
-        )
+        errs, warns = run_config(config, results_dir, args.filter, logger)
+        config_errors[config.name] += errs
+        config_warnings[config.name] += warns
 
     logging.info("SUMMARY:")
     for config_name, errors in config_errors.items():
+        warnings = config_warnings[config_name]
+        if warnings:
+            logger.warning(f"{config_name}: {len(warnings)} errors: {warnings}")
+        else:
+            logger.info(f"{config_name}: 0 errors")
+
         if errors:
             logger.error(f"{config_name}: {len(errors)} errors: {errors}")
         else:
