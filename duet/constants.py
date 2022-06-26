@@ -50,7 +50,7 @@ ITER_ID_COL = PAIR_ID_COL + [RF.iteration]
 TIME_NS_COL = [RF.start_ns, RF.end_ns]
 TIME_D_NS_COL = TIME_NS_COL + [RF.time_ns]
 
-BASE_COL = ITER_ID_COL + TIME_D_NS_COL
+BASE_COL = ITER_ID_COL + TIME_NS_COL
 
 TIME_COL = [RF.start_ns, RF.end_ns]
 TIME_D_COL = TIME_COL + [RF.time_ns]
