@@ -1,7 +1,7 @@
 __all__ = [
-    "duetbench",
-    "duetconfig",
-    "duetprocess",
+    "bench",
+    "config",
+    "process",
     "parsers_artifacts",
     "parsers_benchmarks",
     "constants",

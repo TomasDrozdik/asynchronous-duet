@@ -2,9 +2,9 @@ import re
 import pandas as pd
 import json
 from pathlib import Path
-from duet.constants import RF, NS_PER_S, MS_PER_NS
 
-from duet.duetconfig import ResultFile
+from duet.constants import RF, NS_PER_S, MS_PER_NS
+from duet.config import ResultFile
 
 
 def add_result_file_columns(df: pd.DataFrame, result_file: ResultFile) -> pd.DataFrame:
