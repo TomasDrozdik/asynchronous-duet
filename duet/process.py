@@ -7,9 +7,9 @@ import traceback
 import pandas as pd
 import logging
 from enum import Enum
-from duet.constants import AF, ARTIFACT_COL, BASE_COL, RF, RUN_ID_COL
 
-from duet.duetconfig import ARTIFACTS_DIR, ResultFile
+from duet.constants import AF, ARTIFACT_COL, BASE_COL, RF, RUN_ID_COL
+from duet.config import ARTIFACTS_DIR, ResultFile
 from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
 from duet.parsers_artifact import (
     parse_lscpu,

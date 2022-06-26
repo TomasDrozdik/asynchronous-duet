@@ -1,8 +1,8 @@
 import logging
 
 import pytest
-from duet.duetbench import Benchmark
-from duet.duetconfig import BenchmarkConfig, Pair
+from duet.bench import Benchmark
+from duet.config import BenchmarkConfig, Pair
 
 test_logger = logging.getLogger("test")
 

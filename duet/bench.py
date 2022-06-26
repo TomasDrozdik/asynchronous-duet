@@ -14,7 +14,7 @@ from time import sleep
 import traceback
 from typing import List
 
-from duet.duetconfig import (
+from duet.config import (
     ARTIFACTS_DIR,
     BenchmarkConfig,
     ConfigException,

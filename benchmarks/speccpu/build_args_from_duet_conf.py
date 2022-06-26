@@ -3,7 +3,7 @@
 import argparse
 import logging
 import sys
-from duet.duetconfig import DuetBenchConfig
+from duet.config import DuetBenchConfig
 
 
 def main():
