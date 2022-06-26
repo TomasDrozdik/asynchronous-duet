@@ -2,21 +2,18 @@ import re
 import pandas as pd
 import json
 from pathlib import Path
+from duet.constants import RF, NS_PER_S, MS_PER_NS
 
 from duet.duetconfig import ResultFile
 
 
-MS_PER_NS = 1_000_000
-NS_PER_S = 1_000_000_000
-
-
 def add_result_file_columns(df: pd.DataFrame, result_file: ResultFile) -> pd.DataFrame:
-    df["suite"] = result_file.suite
-    df["benchmark"] = result_file.benchmark
-    df["type"] = result_file.type.value
+    df[RF.suite] = result_file.suite
+    df[RF.benchmark] = result_file.benchmark
+    df[RF.type] = result_file.type.value
     df["order"] = result_file.duet_order
-    df["pair"] = result_file.pair
-    df["runid"] = result_file.runid
+    df[RF.pair] = result_file.pair
+    df[RF.runid] = result_file.runid
     return df
 
 
@@ -36,10 +33,10 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
         for iteration, iteration_data in enumerate(benchmark_data["results"]):
             results.append(
                 {
-                    "benchmark": benchmark,
-                    "iteration": iteration,
+                    RF.benchmark: benchmark,
+                    RF.iteration: iteration,
                     "epoch_start_ms": vm_start_ms,
-                    "iteration_duration_ns": iteration_data["duration_ns"],
+                    RF.time_ns: iteration_data["duration_ns"],
                     "uptime_ns": iteration_data["uptime_ns"],
                     # TODO: Figure out what to put in the following fields
                     # "jdk": results_json["environment"]["jre"]["name"],
@@ -57,8 +54,8 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
             )
 
     df = pd.DataFrame(results)
-    df["iteration_start_ns"] = (df["epoch_start_ms"] * MS_PER_NS) + df["uptime_ns"]
-    df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
+    df[RF.start_ns] = (df["epoch_start_ms"] * MS_PER_NS) + df["uptime_ns"]
+    df[RF.end_ns] = df[RF.start_ns] + df[RF.time_ns]
 
     df = add_result_file_columns(df, result_file)
     return df
@@ -66,17 +63,20 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
 
 def process_dacapo(result_file: ResultFile, logger):
     df = pd.read_csv(result_file.result_path)
-    df.rename({"iteration_time_ns": "iteration_duration_ns"}, axis=1, inplace=True)
+    df.rename({RF.time_ns: RF.time_ns}, axis=1, inplace=True)
     df = add_result_file_columns(df, result_file)
     df["c"] = 1
-    df["iteration"] = df.groupby(by=["suite", "benchmark", "type", "pair", "runid"])[
-        "c"
-    ].cumsum()
+    df[RF.iteration] = df.groupby(
+        by=[RF.suite, RF.benchmark, RF.type, RF.pair, RF.runid]
+    )["c"].cumsum()
     df.drop("c", axis=1, inplace=True)
 
-    assert "start_unix" in df.columns
-    df["iteration_start_ns"] = df["start_unix"] * MS_PER_NS
-    df["iteration_end_ns"] = df["iteration_start_ns"] + df["iteration_duration_ns"]
+    if "start_unix" in df.columns:
+        df[RF.start_ns] = df["start_unix"] * MS_PER_NS
+    else:
+        df[RF.start_ns] = df["total_ms"] * MS_PER_NS
+
+    df[RF.end_ns] = df[RF.start_ns] + df[RF.time_ns]
     return df
 
 
@@ -110,16 +110,16 @@ def process_spec(result_file: ResultFile, logger):
         ]:
             match = regex.match(line)
             if match:
-                container.append(float(match.group(1)) * 1000)  # us to ns
+                container.append(float(match.group(1)) * NS_PER_S)
 
     df = pd.DataFrame(
         {
-            "iteration_start_ns": rate_starts,
-            "iteration_end_ns": rate_ends,
+            RF.start_ns: rate_starts,
+            RF.end_ns: rate_ends,
         }
     )
-    df["iteration"] = df.index
-    df["iteration_duration_ns"] = df["iteration_end_ns"] - df["iteration_start_ns"]
+    df[RF.iteration] = df.index
+    df[RF.time_ns] = df[RF.end_ns] - df[RF.start_ns]
 
     df = add_result_file_columns(df, result_file)
     return df
