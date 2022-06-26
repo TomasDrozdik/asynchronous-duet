@@ -1,6 +1,6 @@
 *venv*
 .vscode/
-results.*/
+results*/
 *.tar.*
 *.csv
 *.png

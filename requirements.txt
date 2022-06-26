@@ -3,7 +3,8 @@ flake8
 ipykernel
 numpy
 pandas
+plotly
 pre-commit
 pytest
+pytest
 pyyaml
-seaborn

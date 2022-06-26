@@ -52,8 +52,8 @@ TIME_D_NS_COL = TIME_NS_COL + [RF.time_ns]
 
 BASE_COL = ITER_ID_COL + TIME_NS_COL
 
-TIME_COL = [RF.start_ns, RF.end_ns]
-TIME_D_COL = TIME_COL + [RF.time_ns]
+TIME_COL = [RF.start, RF.end]
+TIME_D_COL = TIME_COL + [RF.time]
 
 OVERLAP_NS_COL = [RF.overlap_start_ns, RF.overlap_end_ns]
 OVERLAP_D_NS_COL = OVERLAP_NS_COL + [RF.overlap_time_ns]

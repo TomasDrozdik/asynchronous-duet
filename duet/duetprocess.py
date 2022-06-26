@@ -188,6 +188,7 @@ def compute_overlaps(input_df):
     )
     df[RF.overlap_start_ns] = df[[RF.start_ns + "_A", RF.start_ns + "_B"]].max(axis=1)
     df[RF.overlap_end_ns] = df[[RF.end_ns + "_A", RF.end_ns + "_B"]].min(axis=1)
+    df[RF.overlap_time_ns] = df[RF.overlap_end_ns] - df[RF.overlap_start_ns]
     df = df.drop(["indexA", "indexB"], axis=1)
     return df
 
