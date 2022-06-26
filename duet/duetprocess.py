@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
+from typing import List
 import os
+import traceback
 import pandas as pd
 import logging
 from enum import Enum
@@ -26,30 +28,30 @@ BENCHMARK_PARSERS = {
 
 
 ARTIFACT_PARSERS = {
-    "date": strip_contents,
-    "hostname": strip_contents,
-    "uname": strip_contents,
-    "lscpu": parse_lscpu,
-    "meminfo": parse_meminfo,
+    AF.date: strip_contents,
+    AF.hostname: strip_contents,
+    AF.uname: strip_contents,
+    AF.lscpu: parse_lscpu,
+    AF.meminfo: parse_meminfo,
 }
 
 
-REQUIRED_SCHEMA = set(
-    [
-        "suite",
-        "benchmark",
-        "type",
-        "runid",
-        "iteration",
-        "iteration_start_ns",
-        "iteration_end_ns",
-    ]
-)
+REQUIRED_SCHEMA = set(BASE_COL)
 
 
 class SerializeEnum(Enum):
     JSON = "json"
     CSV = "csv"
+
+
+def parse_result_files(results: List[str]):
+    df = pd.DataFrame()
+    for result_file in results:
+        try:
+            df = pd.concat([df, process_result(result_file)])
+        except Exception as e:
+            logging.error(f"Failed to parse {result_file} with: {e}")
+    return df
 
 
 def parse_result_file(result_path):
@@ -127,9 +129,71 @@ def store_results(result_df: pd.DataFrame, output: str, format: SerializeEnum):
         raise NotImplementedError()
 
 
+def compute_overlaps(input_df):
+    def overlap(interval1, interval2):
+        start = max(interval1[0], interval2[0])
+        end = min(interval1[1], interval2[1])
+        return True if end - start > 0 else False
+
+    input_df = input_df[input_df[RF.type] == "duet"]
+    input_df = input_df[BASE_COL + ARTIFACT_COL]
+
+    runs = input_df.groupby(by=RUN_ID_COL + ARTIFACT_COL)
+    overlap_indices = []
+    for name, run in runs:
+        logging.debug(f"process run group {name}")
+        dfA = run[run[RF.pair] == "A"]
+        dfB = run[run[RF.pair] == "B"]
+        dfA = dfA.sort_values(by=[RF.start_ns])
+        dfB = dfB.sort_values(by=[RF.start_ns])
+
+        iA = 0
+        iB = 0
+        while iA < dfA.shape[0] and iB < dfB.shape[0]:
+            rowA = dfA.iloc[iA]
+            intervalA = rowA[RF.start_ns], rowA[RF.end_ns]
+
+            rowB = dfB.iloc[iB]
+            intervalB = rowB[RF.start_ns], rowB[RF.end_ns]
+
+            if overlap(intervalA, intervalB):
+                overlap_indices.append((dfA.index[iA], dfB.index[iB]))
+
+            if intervalA[0] == intervalB[0]:
+                if intervalA[1] <= intervalB[1]:
+                    iA += 1
+                else:
+                    iB += 1
+            elif intervalA[0] < intervalB[0]:
+                iA += 1
+            else:
+                iB += 1
+
+    df = pd.DataFrame(
+        {
+            "indexA": [indexA for indexA, _ in overlap_indices],
+            "indexB": [indexB for _, indexB in overlap_indices],
+        }
+    )
+    df = df.join(input_df, on="indexA")
+    df = df.join(input_df, on="indexB", rsuffix="_B")
+    df = df.drop([RF.pair] + [f"{col}_B" for col in RUN_ID_COL], axis=1)
+    df = df.rename(
+        {
+            RF.iteration: RF.iteration + "_A",
+            RF.start_ns: RF.start_ns + "_A",
+            RF.end_ns: RF.end_ns + "_A",
+        },
+        axis=1,
+    )
+    df[RF.overlap_start_ns] = df[[RF.start_ns + "_A", RF.start_ns + "_B"]].max(axis=1)
+    df[RF.overlap_end_ns] = df[[RF.end_ns + "_A", RF.end_ns + "_B"]].min(axis=1)
+    df = df.drop(["indexA", "indexB"], axis=1)
+    return df
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("results", type=str, nargs="+", help="Results directories")
     parser.add_argument(
         "-o",
         "--output",
@@ -144,6 +208,14 @@ def parse_args():
         "--csv", action="store_true", help="Serialize DataFrame to CSV (default)"
     )
 
+    subparsers = parser.add_subparsers(title="command", dest="command")
+
+    sub_parse = subparsers.add_parser("parse")
+    sub_parse.add_argument("results", type=str, nargs="+", help="Results directories")
+
+    sub_overlaps = subparsers.add_parser("overlaps")
+    sub_overlaps.add_argument("parsed_csv", type=str, help="Previously parsed csv")
+
     return parser.parse_args()
 
 
@@ -156,19 +228,25 @@ def main():
         datefmt="%b %d %H:%M:%S",
     )
 
-    df = pd.DataFrame()
-    for result_file in args.results:
-        try:
-            df = pd.concat([df, process_result(result_file)])
-        except Exception as e:
-            logging.error(f"Failed to parse {result_file} with: {e}")
+    try:
+        if args.command == "parse":
+            df = parse_result_files(args.results)
+        elif args.command == "overlaps":
+            input_df = pd.read_csv(args.parsed_csv)
+            df = compute_overlaps(input_df)
+    except Exception:
+        logging.critical(f"Command {args} failed  with exception")
+        traceback.print_exc()
+        exit(1)
 
     serialization = SerializeEnum.JSON if args.json else SerializeEnum.CSV
     if not args.output:
-        if len(args.results) == 1:
-            args.output = (
-                f"{os.path.basename(args.results[0].rstrip('/'))}.{serialization.value}"
-            )
+        if args.command == "parse" and len(args.results) == 1:
+            basename = os.path.basename(args.results[0]).rstrip("/")
+            args.output = f"{basename}.{serialization.value}"
+        elif args.command == "overlaps":
+            basename = ".".join(os.path.basename(args.parsed_csv).split(".")[:-1])
+            args.output = f"{basename}.overlaps.{serialization.value}"
         else:
             args.output = f"results.{serialization.value}"
 
