@@ -4,4 +4,5 @@ __all__ = [
     "duetprocess",
     "parsers_artifacts",
     "parsers_benchmarks",
+    "constants",
 ]
