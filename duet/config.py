@@ -66,7 +66,7 @@ class BenchmarkConfig:
 
         self.pair = pair
 
-        self.container = f"{self.benchmark}.{pair.value}"
+        self.container = f"{os.getpid()}.{self.benchmark}.{pair.value}"
 
         self.image: str = self.get_or_inherit("image")
 
