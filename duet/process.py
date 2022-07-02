@@ -193,6 +193,28 @@ def compute_overlaps(input_df):
     return df
 
 
+def preprocess_java(df: pd.DataFrame):
+    # Delete first half of iterations
+    max_iteration = "iter_max"
+    df[max_iteration] = df.groupby(ARTIFACT_COL + RUN_ID_COL)[RF.iteration].transform(
+        max
+    )
+    df = df[df[RF.iteration] >= df[max_iteration] / 2]
+    df = df.drop(max_iteration, axis=1)
+    return df
+
+
+def preprocess_data(df: pd.DataFrame):
+    is_java = df[RF.suite].isin(["renaissance", "dacapo", "scalabench"])
+    df_java = df[is_java]
+    df_rest = df[~is_java]
+
+    df_java = preprocess_java(df_java)
+
+    df = df_java.append(df_rest)
+    return df
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
