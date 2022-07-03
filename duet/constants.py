@@ -32,8 +32,16 @@ class ResultsFields:
     overlap_time = "overlap_time"
 
 
+class DerivedFields:
+    pair_time_diff_ns = "pair_time_diff_ns"
+    pair_speedup = "pair_speedup"
+    gmsr = "run_gmean_speedup"
+    ggmsr = "bench_gmean_speedup"
+
+
 AF = ArtifactFiels()
 RF = ResultsFields()
+DF = DerivedFields()
 
 MS_PER_S = 1000
 US_PER_S = 1000 * MS_PER_S
@@ -43,7 +51,8 @@ MS_PER_NS = NS_PER_S / MS_PER_S
 
 ARTIFACT_COL = [AF.date, AF.hostname, AF.lscpu, AF.meminfo, AF.uname]
 
-RUN_ID_COL = [RF.suite, RF.benchmark, RF.type, RF.runid]
+BENCHMARK_ID_COL = [RF.suite, RF.benchmark, RF.type]
+RUN_ID_COL = BENCHMARK_ID_COL + [RF.runid]
 PAIR_ID_COL = RUN_ID_COL + [RF.pair]
 ITER_ID_COL = PAIR_ID_COL + [RF.iteration]
 
