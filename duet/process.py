@@ -1,14 +1,28 @@
 #!/usr/bin/env python3
 
 import argparse
-from typing import List
-import os
-import traceback
-import pandas as pd
-import logging
 from enum import Enum
+import logging
+import numpy as np
+import os
+import pandas as pd
+from scipy.stats import (
+    bootstrap,
+    gmean,
+)
+import traceback
+from typing import List
 
-from duet.constants import AF, ARTIFACT_COL, BASE_COL, RF, RUN_ID_COL
+from duet.constants import (
+    AF,
+    ARTIFACT_COL,
+    BASE_COL,
+    BENCHMARK_ID_COL,
+    DF,
+    PAIR_ID_COL,
+    RF,
+    RUN_ID_COL,
+)
 from duet.config import ARTIFACTS_DIR, ResultFile
 from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
 from duet.parsers_artifact import (
@@ -129,7 +143,7 @@ def store_results(result_df: pd.DataFrame, output: str, format: SerializeEnum):
         raise NotImplementedError()
 
 
-def compute_overlaps(input_df):
+def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
     def overlap(interval1, interval2):
         start = max(interval1[0], interval2[0])
         end = min(interval1[1], interval2[1])
@@ -193,7 +207,107 @@ def compute_overlaps(input_df):
     return df
 
 
-def preprocess_java(df: pd.DataFrame):
+def compute_ci_seqn(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
+    df = df[df[RF.type] == "seqn"]
+    df = preprocess_data(df)
+
+    if sample_type == "run_means":
+        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, np.mean)).reset_index()
+    elif sample_type == "one_sample":
+        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, "sample")).reset_index()
+        raise NotImplementedError(f"Sample type: {sample_type} does not work yet")
+    elif sample_type == "run_merge":
+        df = df.rename({RF.time_ns: "sample"}, axis=1)
+    else:
+        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
+
+    return (
+        df.groupby(by=BENCHMARK_ID_COL + [RF.pair])
+        .apply(
+            lambda x: pd.Series(
+                {"ci": bootstrap(data=(x["sample"],), statistic=np.mean)}
+            )
+        )
+        .reset_index()
+    )
+
+
+def compute_ci_syncduet(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
+    df = df[df[RF.type] == "syncduet"]
+    df = preprocess_data(df)
+
+    # Pair A/B runs to single row
+    df = df.pivot_table(
+        index=ARTIFACT_COL + RUN_ID_COL + [RF.iteration],
+        columns=RF.pair,
+        values=[RF.time_ns],
+    ).reset_index()
+    df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
+
+    df[DF.pair_speedup] = df[RF.time_ns + "_A"] / df[RF.time_ns + "_B"]
+
+    if sample_type == "run_means":
+        df = df.groupby(ARTIFACT_COL + RUN_ID_COL).agg(sample=(DF.pair_speedup, gmean))
+    elif sample_type == "one_sample":
+        df = (
+            df.groupby(by=PAIR_ID_COL)
+            .agg(sample=(DF.pair_speedup, "sample"))
+            .reset_index()
+        )
+        raise NotImplementedError(f"Sample type: {sample_type} does not work yet")
+    elif sample_type == "run_merge":
+        df = df.rename({DF.pair_speedup: "sample"}, axis=1)
+    else:
+        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
+
+    # Expected result (internally computed by bootstrap as the sample statistics):
+    # df_ggmsr = df_gmsr.groupby(ARTIFACT_COL + BENCHMARK_ID_COL).agg(ggmsr=("gmsr", gmean))
+
+    return (
+        df.groupby(BENCHMARK_ID_COL)
+        .apply(
+            lambda x: pd.Series({"ci": bootstrap(data=(x["sample"],), statistic=gmean)})
+        )
+        .reset_index()
+    )
+
+
+def compute_ci_duet_no_overlaps(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
+    df = df[df[RF.type] == "duet"]
+    df = preprocess_data(df)
+
+    if sample_type == "run_means":
+        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, np.mean)).reset_index()
+    elif sample_type == "one_sample":
+        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, "sample")).reset_index()
+        raise NotImplementedError(f"Sample type: {sample_type} does not work yet")
+    elif sample_type == "run_merge":
+        df = df.rename({RF.time_ns: "sample"}, axis=1)
+    else:
+        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
+
+    return (
+        df.groupby(by=BENCHMARK_ID_COL + [RF.pair])
+        .apply(
+            lambda x: pd.Series(
+                {"ci": bootstrap(data=(x["sample"],), statistic=np.mean)}
+            )
+        )
+        .reset_index()
+    )
+
+
+def expand_confidence_interval(df: pd.DataFrame, ci_col="ci") -> pd.DataFrame:
+    df["lo"] = df.apply(lambda x: x[ci_col].confidence_interval[0], axis=1)
+    df["hi"] = df.apply(lambda x: x[ci_col].confidence_interval[1], axis=1)
+    df["err"] = (df["hi"] - df["lo"]) / 2
+    df["mid"] = df["lo"] + df["err"]
+    df["se"] = df.apply(lambda x: x[ci_col].standard_error, axis=1)
+    df = df.drop(ci_col, axis=1)
+    return df
+
+
+def preprocess_java(df: pd.DataFrame) -> pd.DataFrame:
     # Delete first half of iterations
     max_iteration = "iter_max"
     df[max_iteration] = df.groupby(ARTIFACT_COL + RUN_ID_COL)[RF.iteration].transform(
@@ -204,15 +318,27 @@ def preprocess_java(df: pd.DataFrame):
     return df
 
 
-def preprocess_data(df: pd.DataFrame):
+def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     is_java = df[RF.suite].isin(["renaissance", "dacapo", "scalabench"])
     df_java = df[is_java]
     df_rest = df[~is_java]
-
     df_java = preprocess_java(df_java)
+    return pd.concat([df_java, df_rest])
 
-    df = df_java.append(df_rest)
-    return df
+
+def preprocess_overlaps(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter out small overlaps i.e. <10% of mean run time"""
+    pass
+
+
+def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
+    """Alter speedup/slowdown score of results by given rate.
+
+    For seqn/syncduet types simply speedup the time_ns, for duet it needs to
+    re-compute start end timestamps to somewhat keep overlaps representative
+    of actual slower pair.
+    """
+    pass
 
 
 def parse_args():
