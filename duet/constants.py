@@ -31,6 +31,26 @@ class ResultsFields:
     overlap_end = "overlap_end"
     overlap_time = "overlap_time"
 
+    a_suffix = "_A"
+    b_suffix = "_B"
+
+    iteration_A = "iteration" + a_suffix
+    iteration_B = "iteration" + b_suffix
+
+    start_ns_A = "iteration_start_ns" + a_suffix
+    end_ns_A = "iteration_end_ns" + a_suffix
+    time_ns_A = "iteration_time_ns" + a_suffix
+    start_ns_B = "iteration_start_ns" + b_suffix
+    end_ns_B = "iteration_end_ns" + b_suffix
+    time_ns_B = "iteration_time_ns" + b_suffix
+
+    start_A = "iteration_start" + a_suffix
+    end_A = "iteration_end" + a_suffix
+    time_A = "iteration_time" + a_suffix
+    start_B = "iteration_start" + b_suffix
+    end_B = "iteration_end" + b_suffix
+    time_B = "iteration_time" + b_suffix
+
 
 class DerivedFields:
     pair_time_diff_ns = "pair_time_diff_ns"
@@ -57,9 +77,11 @@ PAIR_ID_COL = RUN_ID_COL + [RF.pair]
 ITER_ID_COL = PAIR_ID_COL + [RF.iteration]
 
 TIME_NS_COL = [RF.start_ns, RF.end_ns]
+TIME_NS_SUFFIX_COL = [RF.start_ns_A, RF.end_ns_A, RF.start_ns_B, RF.end_ns_B]
 TIME_D_NS_COL = TIME_NS_COL + [RF.time_ns]
+TIME_D_NS_SUFFIX_COL = TIME_NS_SUFFIX_COL + [RF.time_ns_A, RF.time_ns_B]
 
-BASE_COL = ITER_ID_COL + TIME_NS_COL
+BASE_COL = ITER_ID_COL + TIME_D_NS_COL
 
 TIME_COL = [RF.start, RF.end]
 TIME_D_COL = TIME_COL + [RF.time]

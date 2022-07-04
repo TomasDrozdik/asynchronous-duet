@@ -22,6 +22,7 @@ from duet.constants import (
     PAIR_ID_COL,
     RF,
     RUN_ID_COL,
+    TIME_D_NS_SUFFIX_COL,
 )
 from duet.config import ARTIFACTS_DIR, ResultFile
 from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
@@ -150,7 +151,6 @@ def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
         return True if end - start > 0 else False
 
     input_df = input_df[input_df[RF.type] == "duet"]
-    input_df = input_df[BASE_COL + ARTIFACT_COL]
 
     runs = input_df.groupby(by=RUN_ID_COL + ARTIFACT_COL)
     overlap_indices = []
@@ -190,18 +190,22 @@ def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
         }
     )
     df = df.join(input_df, on="indexA")
-    df = df.join(input_df, on="indexB", rsuffix="_B")
-    df = df.drop([RF.pair] + [f"{col}_B" for col in RUN_ID_COL], axis=1)
+    df = df.join(input_df, on="indexB", rsuffix=RF.b_suffix)
+    b_suffix_columns_to_remove = set(
+        [x for x in df.columns if x.endswith(RF.b_suffix)]
+    ) - set(TIME_D_NS_SUFFIX_COL)
+    df = df.drop(list(b_suffix_columns_to_remove), axis=1)
     df = df.rename(
         {
-            RF.iteration: RF.iteration + "_A",
-            RF.start_ns: RF.start_ns + "_A",
-            RF.end_ns: RF.end_ns + "_A",
+            RF.iteration: RF.iteration_A,
+            RF.start_ns: RF.start_ns_A,
+            RF.end_ns: RF.end_ns_A,
+            RF.time_ns: RF.time_ns_A,
         },
         axis=1,
     )
-    df[RF.overlap_start_ns] = df[[RF.start_ns + "_A", RF.start_ns + "_B"]].max(axis=1)
-    df[RF.overlap_end_ns] = df[[RF.end_ns + "_A", RF.end_ns + "_B"]].min(axis=1)
+    df[RF.overlap_start_ns] = df[[RF.start_ns_A, RF.start_ns_B]].max(axis=1)
+    df[RF.overlap_end_ns] = df[[RF.end_ns_A, RF.end_ns_B]].min(axis=1)
     df[RF.overlap_time_ns] = df[RF.overlap_end_ns] - df[RF.overlap_start_ns]
     df = df.drop(["indexA", "indexB"], axis=1)
     return df
@@ -244,7 +248,7 @@ def compute_ci_syncduet(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
     ).reset_index()
     df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
 
-    df[DF.pair_speedup] = df[RF.time_ns + "_A"] / df[RF.time_ns + "_B"]
+    df[DF.pair_speedup] = df[RF.time_ns_A] / df[RF.time_ns_B]
 
     if sample_type == "run_means":
         df = df.groupby(ARTIFACT_COL + RUN_ID_COL).agg(sample=(DF.pair_speedup, gmean))
