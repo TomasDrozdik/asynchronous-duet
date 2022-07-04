@@ -330,9 +330,19 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([df_java, df_rest])
 
 
-def preprocess_overlaps(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess_overlaps(df: pd.DataFrame, p=0.1) -> pd.DataFrame:
     """Filter out small overlaps i.e. <10% of mean run time"""
-    pass
+    assert 0 < p and p < 1
+
+    mean_time_col = f"{RF.time_ns}_mean"
+    df_mean_time = df.groupby(BENCHMARK_ID_COL).apply(
+        lambda x: pd.Series({mean_time_col: np.mean(x[RF.time_ns_A] + x[RF.time_ns_B])})
+    )
+
+    df = df.merge(df_mean_time, on=BENCHMARK_ID_COL)
+    df = df[df[RF.overlap_time_ns] >= p * df[mean_time_col]]
+    df = df.drop(mean_time_col, axis=1)
+    return df
 
 
 def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
