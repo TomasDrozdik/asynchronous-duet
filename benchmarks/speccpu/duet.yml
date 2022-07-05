@@ -16,7 +16,6 @@ duetbench:
   name: speccpu
   suite: speccpu
   verbose: false
-  seed: 42
   docker_command: docker
 
   remove_containers: true
@@ -36,7 +35,7 @@ duetbench:
     - /duet/speccpu/result
 
   run_base: /duet/speccpu/bin/runcpu --config duet-gcc-linux-x86.cfg --iterations 10 --tuning peak --action onlyrun
-  timeout: 3600
+  timeout: 1800
 
   duets:
     # SPECrate®2017 Integer (intrate) and SPECspeed®2017 Integer (intspeed)

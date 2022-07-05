@@ -4,12 +4,11 @@ duetbench:
   name: renaissance
   suite: renaissance
   verbose: false
-  seed: 42
   docker_command: docker
 
   remove_containers: true
-  duet_repetitions: 4
-  sequential_repetitions: 4
+  duet_repetitions: 10
+  sequential_repetitions: 10
   schedule: randomized_interleaving_trials
 
   artifacts:
@@ -34,8 +33,8 @@ duetbench:
   # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
   # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
   # -XX:+UseParallelGC -XX:+UseParallelOldGC
-  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --repetitions 100 --json /duet/results.json
-  timeout: 600
+  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --repetitions 50 --json /duet/results.json
+  timeout: 300
 
   duets:
     - akka-uct
