@@ -346,13 +346,35 @@ def preprocess_overlaps(df: pd.DataFrame, p=0.1) -> pd.DataFrame:
 
 
 def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
-    """Alter speedup/slowdown score of results by given rate.
+    """Alter - speedup/slowdown score of results by given rate.
 
-    For seqn/syncduet types simply speedup the time_ns, for duet it needs to
-    re-compute start end timestamps to somewhat keep overlaps representative
-    of actual slower pair.
+    For seqn/syncduet types simply speeding up the time_ns is sufficient,
+    for duet it needs to re-compute start/end timestamps to somewhat keep
+    overlaps representative of actual slower pair.
+    Thus we can unify it and recompute the timestamps.
+
+    Requires DF with ARTIFACT_COL + BASE_COL
     """
-    pass
+
+    def recompute_timestamps(df: pd.DataFrame):
+        delta_time = "delta_time"
+        df[delta_time] = rate * df[RF.time_ns]
+        df[delta_time] = df[delta_time].cumsum()
+        df[RF.start_ns] += df[delta_time].shift(1, fill_value=0)
+        df[RF.end_ns] += df[delta_time]
+        # assert all((1 + rate) * df[RF.time_ns] == df[RF.end] - df[RF.start]) - does not hold supposedly because of float operations
+        df[RF.time_ns] = df[RF.end_ns] - df[RF.start_ns]
+        df = df.drop(delta_time, axis=1)
+        return df
+
+    return pd.concat(
+        [
+            df[df[RF.pair] == pair]
+            .groupby(by=ARTIFACT_COL + RUN_ID_COL)
+            .apply(recompute_timestamps),
+            df[df[RF.pair] != pair],
+        ]
+    )
 
 
 def parse_args():
