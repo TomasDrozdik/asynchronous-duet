@@ -17,7 +17,12 @@ This is "practical part" of a [Master Thesis](https://github.com/TomasDrozdik/as
   - [Development setup](#development-setup)
     - [Tests](#tests)
 - [Notes duet configs](#notes-duet-configs)
+    - [Used in original paper](#used-in-original-paper)
     - [Runs iterations and timeouts](#runs-iterations-and-timeouts)
+- [AWS EC2 setup](#aws-ec2-setup)
+  - [instance launch](#instance-launch)
+  - [instance setup](#instance-setup)
+  - [Notes](#notes)
 
 
 ## Install/Buid/Run TL;DR
@@ -317,3 +322,56 @@ There are no tests so far :-)
 **Iterations:**
 * renaissance, dacapo, scalabench - 100 iterations or 10 minutes
 * speccpu - 10 iterations or 60 minutes
+
+
+# AWS EC2 setup
+
+## instance launch
+  * default security group - all incomming ssh traffic
+  * get unique private key, `ssh-add`
+  * select ubuntu22 AMI
+
+  > Possibly try to create a template that has it all setup? Or create setup scripts..
+
+## instance setup
+  * [install docker](https://docs.docker.com/engine/install/ubuntu/)
+  Simplest approach seems to be:
+  ```
+  curl -fsSL https://get.docker.com -o get-docker.sh
+  DRY_RUN=1 sh ./get-docker.sh
+  ```
+  Then enable userspace docker:
+  ```
+  sudo usermod -aG docker ubuntu
+  ```
+
+  * clone asynchronous duet:
+    * localhost:
+    ```
+    scp awsec2 ubuntu@44.206.255.166:~/.ssh
+    ```
+
+    * ec2:
+    ```
+    git clone git@github.com:TomasDrozdik/asynchronous-duet.git
+    sudo apt install -y python3-pip
+    sudo apt-get clean -y
+    cd ~/asynchronous-duet
+    pip install .
+    export PATH="$HOME/.local/bin:$PATH"
+    ```
+
+  * move docker images:
+    * localhost:
+    ```
+    ./move-images.sh -s -l ubuntu@44.206.255.166 '~' renaissance dacapo ...
+    ```
+
+    > `Error processing tar file(exit status 1): write... no space left on device` - for 8GiB t2.micro instance. Remedy - move by image and remove tar after loaded.
+
+  * run `duetbench`
+  * copy results using `scp`
+## Notes
+
+* 1 vCPU is pretty loaded when we launch 2 docker instances running benchmarks.. it wasn't responsive at all and couldn't complete 1 iteration of 2 running dockers
+* next: try just a single benchmark run from within one docker without duetbench
