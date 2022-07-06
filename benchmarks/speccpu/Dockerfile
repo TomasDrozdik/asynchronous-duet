@@ -19,6 +19,7 @@ RUN apt-get -y update && apt-get -y upgrade &&\
     cd speccpu && ./install.sh -f &&\
     mv /duet/duet-gcc-linux-x86.cfg /duet/speccpu/config/ &&\
     bash -c "cd  /duet/speccpu && source shrc && runcpu --config duet-gcc-linux-x86.cfg --action build --tuning peak ${BUILD} 2>&1 | tee /duet/build.log" &&\
+    rm -rf /duet/speccpu/install_archives/ &&\
     apt-get -y clean
 
 CMD bash
