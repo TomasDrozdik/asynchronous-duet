@@ -612,14 +612,9 @@ def main():
     for config_name, errors in config_errors.items():
         warnings = config_warnings[config_name]
         if warnings:
-            logger.warning(f"{config_name}: {len(warnings)} errors: {warnings}")
-        else:
-            logger.info(f"{config_name}: 0 errors")
-
+            logger.warning(f"{config_name}: {len(warnings)} warnings: {warnings}")
         if errors:
             logger.error(f"{config_name}: {len(errors)} errors: {errors}")
-        else:
-            logger.info(f"{config_name}: 0 errors")
 
     logging.info(f"RESULTS: {results_dir}")
 
