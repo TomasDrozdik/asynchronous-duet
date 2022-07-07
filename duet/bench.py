@@ -377,7 +377,7 @@ class Harness:
                         duet_config,
                         self.results_dir,
                         duet_runid,
-                        DuetOrder.AB,
+                        random.choice([DuetOrder.AB, DuetOrder.BA]),
                         synchronized=False,
                         base_logger=self.logger,
                     )
@@ -388,7 +388,7 @@ class Harness:
                         duet_config,
                         self.results_dir,
                         syncduet_runid,
-                        DuetOrder.AB,
+                        random.choice([DuetOrder.AB, DuetOrder.BA]),
                         synchronized=True,
                         base_logger=self.logger,
                     )
