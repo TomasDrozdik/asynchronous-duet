@@ -1,7 +1,7 @@
 *venv*
 .vscode/
 results*/
-*.tar.*
+*.tar*
 *.csv
 *.png
 __pycache__
@@ -10,3 +10,8 @@ dist
 .pytest_cache
 build
 *.pyc
+
+
+# make-archive.sh output
+duetbench
+duetbench.tar.gz
