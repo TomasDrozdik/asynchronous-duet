@@ -21,8 +21,12 @@ for file in $(find ./benchmarks -name "duet.yml") ; do
 done
 
 # Add images
-IMAGES=renaissance # dacapo scalabench speccpu
+IMAGES="renaissance dacapo scalabench speccpu"
 for image in ${IMAGES} ; do
+    if [ ! -f ${image}.tar ] ; then
+        docker image save ${image} > ${image}.tar
+    fi
+
     cp ${image}.tar ${ARCHIVE}
 done
 

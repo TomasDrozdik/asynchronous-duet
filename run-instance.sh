@@ -7,16 +7,15 @@
 # Prerequisites:
 # - Ubuntu22 EC2 instance
 # - Existing duetbench tar archive on remote server that is accesible for reading from the instance
-#     - see TODO(Get archive)
 #     - archive has fixed structure created by `make-archive.sh`
 # - Existing ftp server to publish results to
-#     - see TODO(Send results)
 
 set -euo pipefail
 
 HELP="run-instance.sh <path_to_duetbench_archive>"
 
 # Get duetbench
+# TODO: Replace with path to remote archive
 ARCHIVE_PATH=${1:?${HELP}}
 ARCHIVE="duetbench.tar.gz"
 # TODO(Get archive) wget ${ARCHIVE_PATH} -O ${ARCHIVE}
@@ -32,6 +31,7 @@ export PATH="$HOME/.local/bin:$PATH"
 cd duetbench
 for image in $(find . -name "*.tar") ; do
     podman image load --input ${image}
+    rm ${image}
 done
 
 # Install duetbench
@@ -43,10 +43,8 @@ outdir="results.drozdikt.$(hostname -f).$(date '+%s')"
 log=${outdir}.log
 bash -c "duetbench --outdir ${outdir} --verbose --docker podman -- ${configs} &> ${log}"
 
-# TODO(Send results)
 tar=${outdir}.tar
 tar -cvzf ${tar} ${outdir} ${log}
-echo sftp anonymous@shiva.ms.mff.cuni.cz:~ <<< "put ${tar}"
+sftp anonymous@shiva.ms.mff.cuni.cz:~ <<< "put ${tar}"
 
-# End
-echo sudo poweroff
+sudo poweroff
