@@ -12,12 +12,12 @@
 
 set -euo pipefail
 
-HELP="run-instance.sh <remote_path> <remote_config> <ftp_url>"
+HELP="run-instance.sh <remote_path> <remote_config>"
 
 # TODO: Replace with appropiate values to execute without arguments
 REMOTE_PATH=${1:?${HELP}} # path with ${REMOTE_CONFIG} and ${image}.tar for image in ${IMAGES} see below
 REMOTE_CONFIG=${2:?${HELP}} # filename of config e.g. duetbench.config-1run.tar.gz
-FTP_PATH=${3:?${HELP}} # accessible ftp server to upload results to before shutdown
+FTP_PATH="ftp://shiva.ms.mff.cuni.cz"
 IMAGES="renaissance dacapo scalabench speccpu"
 
 # Get duetbench
@@ -45,8 +45,8 @@ outdir="results.drozdikt.$(hostname -f).$(date '+%s')"
 log=${outdir}.log
 bash -c "duetbench --outdir ${outdir} --verbose --docker podman -- ${configs} &> ${log}"
 
-tar=${outdir}.tar
-tar -cvzf ${tar} ${outdir} ${log}
-ftp ${FTP_PATH} <<< "put ${tar}"
+tar="${outdir}.tar"
+tar -cvzf "${tar}" "${outdir}" "${log}"
+curl --upload-file "${tar}" "${FTP_PATH}/${tar}"
 
 sudo poweroff
