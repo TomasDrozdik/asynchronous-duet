@@ -24,6 +24,18 @@ if $USE_NEW_DISK_ON_AMAZON; then
     sudo mount /dev/nvme1n1p1 /mnt/duet/
     sudo chmod a+w /mnt/duet/
 
+    sudo mkdir -p /mnt/duet/temp
+    sudo chmod a+w /mnt/duet/temp
+    mkdir -p /mnt/duet/podman/containers/storage
+    export TMPDIR=/mnt/duet/temp
+
+    mkdir -p "$HOME/.config/containers/"
+    (
+        echo '[storage]'
+        echo 'driver = "vfs"'
+        echo 'graphroot = "/mnt/duet/podman/containers/storage"'
+    ) >> "$HOME/.config/containers/storage.conf"
+
     cd /mnt/duet
 fi
 
@@ -46,6 +58,7 @@ export PATH="$HOME/.local/bin:$PATH"
 for image in ${IMAGES} ; do
     wget "${REMOTE_PATH}/${image}.tar" -O "${image}.tar"
     podman image load <"${image}.tar"
+    rm "${image}.tar"
 done
 
 # Install duetbench
