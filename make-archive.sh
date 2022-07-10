@@ -1,34 +1,26 @@
 #!/bin/bash
 
-# Create archive of duet package, docker images and duet configurations.
-# Output is fixed name archive `duetbench.tar.gz` used by `run-instance.sh`
+# Create BUILD_DIR and of duet package, docker images and duet configurations.
+# Output is archived BUILD_DIR used by `run-instance.sh`
 
 set -xeuo pipefail
 
 # Rebuild dist
 python -m build
 
-ARCHIVE="duetbench"
-mkdir -p ${ARCHIVE}
+BUILD_DIR="duetbench"
+mkdir -p ${BUILD_DIR}
 
 # Add duet pacakge
-cp ./dist/*.tar.gz ${ARCHIVE}/duet.tar.gz
+cp ./dist/*.tar.gz ${BUILD_DIR}/duet.tar.gz
 
 # Add duet configs
 for file in $(find ./benchmarks -name "duet.yml") ; do
-    mkdir -p ${ARCHIVE}/$(dirname ${file})
-    cp ${file} ${ARCHIVE}/$(dirname ${file})
+    mkdir -p ${BUILD_DIR}/$(dirname ${file})
+    cp ${file} ${BUILD_DIR}/$(dirname ${file})
 done
 
-# Add images
-IMAGES="renaissance dacapo scalabench speccpu"
-for image in ${IMAGES} ; do
-    if [ ! -f ${image}.tar ] ; then
-        docker image save ${image} > ${image}.tar
-    fi
+# Compress BUILD_DIR
+tar -cvzf ${BUILD_DIR}.tar.gz ${BUILD_DIR}
 
-    cp ${image}.tar ${ARCHIVE}
-done
-
-# Compress archive
-tar -cvzf duetbench.tar.gz ${ARCHIVE}
+mv ${BUILD_DIR}.tar.gz duetbench.$(git rev-parse --abbrev-ref HEAD).tar.gz

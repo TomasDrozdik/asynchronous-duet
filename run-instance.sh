@@ -12,12 +12,13 @@
 
 set -euo pipefail
 
-HELP="run-instance.sh <path_to_duetbench_archive> <ftp_url>"
+HELP="run-instance.sh <path_to_duetbench_archives> <ftp_url>"
 
 # Get duetbench
 # TODO: Replace with path to remote archive
 ARCHIVE_PATH=${1:?${HELP}}
 FTP_PATH=${2:?${HELP}}
+IMAGES="renaissance dacapo scalabench speccpu"
 
 ARCHIVE="duetbench.tar.gz"
 # TODO(Get archive) wget ${ARCHIVE_PATH} -O ${ARCHIVE}
@@ -30,13 +31,12 @@ sudo apt install -y python3 python3-pip podman
 export PATH="$HOME/.local/bin:$PATH"
 
 # Load docker images
-cd duetbench
-for image in $(find . -name "*.tar") ; do
-    podman image load --input ${image}
-    rm ${image}
+for image in ${IMAGES} ; do
+    wget -O - ${ARCHIVE_PATH}/${image}.tar | podman image load
 done
 
 # Install duetbench
+cd duetbench
 pip install duet.tar.gz
 
 # Run duetbench
