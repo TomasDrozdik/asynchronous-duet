@@ -71,8 +71,8 @@ outdir="results.drozdikt.$(hostname -f).$(date '+%Y-%m-%d--%H-%M-%S--%s')"
 log=${outdir}.log
 bash -c "duetbench --outdir ${outdir} --verbose --docker podman -- ${configs} &> ${log}"
 
-tar="${outdir}.tar"
-tar -cvzf "${tar}" "${outdir}" "${log}"
-curl --upload-file "${tar}" "${FTP_PATH}/${tar}"
+tarball="${outdir}.tar.gz"
+tar -cvzf "${tarball}" "${outdir}" "${log}"
+curl --upload-file "${tarball}" "${FTP_PATH}/${tarball}"
 
 sudo poweroff
