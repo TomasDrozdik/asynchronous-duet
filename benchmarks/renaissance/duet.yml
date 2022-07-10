@@ -1,15 +1,15 @@
 # Renaissance duet config
 
 duetbench:
-  name: renaissance
+  name: t_renaissance
   suite: renaissance
   verbose: false
+  seed: 42
   docker_command: docker
 
   remove_containers: true
-  duet_repetitions: 5
-  sequential_repetitions: 5
-  schedule: randomized_interleaving_trials
+  duet_repetitions: 1
+  sequential_repetitions: 0
 
   artifacts:
     date: date
@@ -33,7 +33,7 @@ duetbench:
   # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
   # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
   # -XX:+UseParallelGC -XX:+UseParallelOldGC
-  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --repetitions 50 --json /duet/results.json
+  run_base: java -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar renaissance-gpl-0.13.0.jar --json /duet/results.json -c test --repetitions 1
   timeout: 300
 
   duets:

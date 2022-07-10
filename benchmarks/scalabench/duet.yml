@@ -1,16 +1,16 @@
 # Scalabench duet config
 
 duetbench:
-  name: scalabench
+  name: t_scalabench
   suite: scalabench
   verbose: false
+  seed: 42
   docker_command: docker
 
   remove_containers: true
-  duet_repetitions: 5
-  syncduet_repetitions: 5
-  sequential_repetitions: 5
-  schedule: randomized_interleaving_trials
+  duet_repetitions: 1
+  syncduet_repetitions: 1
+  sequential_repetitions: 0
 
   artifacts:
     date: date
@@ -34,8 +34,8 @@ duetbench:
   # -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy
   # -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4
   # -XX:+UseParallelGC -XX:+UseParallelOldGC
-  run_base: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 50 --no-validation -o /duet/results.csv
-  syncduet_run_base: java -agentpath:/barrier/java-ubench-agent/out/agent/libubench-agent.so -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar /duet/scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 50 --no-validation -o /duet/results.csv
+  run_base: java  -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 1 -o /duet/results.csv
+  syncduet_run_base: java -agentpath:/barrier/java-ubench-agent/out/agent/libubench-agent.so -Xms1536M -Xmx1536M -XX:NewSize=375M -XX:MaxNewSize=375M -XX:SurvivorRatio=4 -XX:-UseAdaptiveSizePolicy -XX:-UsePSAdaptiveSurvivorSizePolicy -XX:MaxTenuringThreshold=4 -XX:InitialTenuringThreshold=4 -XX:+UseParallelGC -XX:+UseParallelOldGC -jar /duet/scala-benchmark-suite-0.1.0-20120216.103539-3-d3s.jar --iterations 1 -o /duet/results.csv
   timeout: 300
 
   duets:

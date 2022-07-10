@@ -19,8 +19,8 @@ duetbench:
   docker_command: docker
 
   remove_containers: true
-  duet_repetitions: 2
-  sequential_repetitions: 2
+  duet_repetitions: 1
+  sequential_repetitions: 0
 
   artifacts:
     date: date
@@ -34,113 +34,11 @@ duetbench:
   results:
     - /duet/speccpu/result
 
-  run_base: /duet/speccpu/bin/runcpu --config duet-gcc-linux-x86.cfg --iterations 10 --tuning peak --action onlyrun
+  run_base: /duet/speccpu/bin/runcpu --config duet-gcc-linux-x86.cfg --iterations 1 --tuning peak --action onlyrun
   timeout: 1800
 
   duets:
-    # SPECrate®2017 Integer (intrate) and SPECspeed®2017 Integer (intspeed)
-    ## C 362 Perl interpreter
     - 500.perlbench_r
-    #- 600.perlbench_s
-
-    ## C 1,304 GNU C compiler
-    # OMIT: Size (700 MB + 500 MB)
-    #- 502.gcc_r
-    #- 602.gcc_s
-
-    ## C 3 Route planning
-    - 505.mcf_r
-    #- 605.mcf_s
-
-    ## C++ 134 Discrete Event simulation - computer network
-    # Size (300 MB + 240 MB)
-    - 520.omnetpp_r
-    #- 620.omnetpp_s
-
-    ## C++ 520 XML to HTML conversion via XSLT
-    # OMIT: Size (890 MB)
-    #- 523.xalancbmk_r
-    #- 623.xalancbmk_s
-
-    ## C 96 Video compression
-    # OMIT: Size (300 MB + 200 MB)
-    - 525.x264_r
-    #- 625.x264_s
-
-    ## C++ 10 Artificial Intelligence: alpha-beta tree search (Chess)
-    - 531.deepsjeng_r
-    # ERROR Training
-    #- 631.deepsjeng_s
-
-    ## C++ 21 Artificial Intelligence: Monte Carlo tree search (Go)
-    - 541.leela_r
-    #- 641.leela_s
-
-    ## Fortran 1 Artificial Intelligence: recursive solution generator (Sudoku)
-    - 548.exchange2_r
-    #- 648.exchange2_s
-
-    ## C 33 General data compression
-    - 557.xz_r
-    #- 657.xz_s
-
-    # SPECrate®2017 Floating Point (fprate) SPECspeed®2017 Floating Point (fpspeed)
-    ## Fortran 1 Explosion modeling
-    # ERROR Training: segfault
-    #- 503.bwaves_r
-    #- 603.bwaves_s
-
-    ## C++, C, Fortran 257 Physics: relativity
-    - 507.cactuBSSN_r
-    #- 607.cactuBSSN_s
-
-    ## C++ 8 Molecular dynamics
-    - 508.namd_r
-
-    ## C++ 427 Biomedical imaging: optical tomography with finite elements
-    # ERROR Build: OOM
-    #- 510.parest_r
-
-    ## C++, C 170 Ray tracing
-    - 511.povray_r
-
-    # C 1 Fluid dynamics
-    - 519.lbm_r
-    #- 619.lbm_s
-
-    ## Fortran, C 991 Weather forecasting
-    # BUILD: type mismatch
-    #- 521.wrf_r
-    #- 621.wrf_s
-
-    ## C++, C 1,577 3D rendering and animation
-    # OMIT: Size (1.1GB)
-    #- 526.blender_r
-
-    ## Fortran, C 407 Atmosphere modeling
-    # ERROR Build: type mismatch
-    #- 527.cam4_r
-    #- 627.cam4_s
-
-    ## Fortran, C 338 Wide-scale ocean modeling (climate level)
-    # OMIT: Size (300 MB)
-    #- 628.pop2_s
-
-    ## C 259 Image manipulation
-    - 538.imagick_r
-    #- 638.imagick_s
-
-    ## C 24 Molecular dynamics
-    - 544.nab_r
-    #- 644.nab_s
-
-    ## Fortran 14 Computational Electromagnetics
-    - 549.fotonik3d_r
-    #- 649.fotonik3d_s
-
-    ## Fortran 210 Regional ocean modeling
-    - 554.roms_r
-    #- 654.roms_s
 
 500.perlbench_r:
   A:
