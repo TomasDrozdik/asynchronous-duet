@@ -28,11 +28,8 @@ if $USE_NEW_DISK_ON_AMAZON; then
 fi
 
 
-# TODO: Replace with appropiate values to execute without arguments
-REMOTE_PATH=${1:?${HELP}} # path with ${REMOTE_CONFIG} and ${image}.tar for image in ${IMAGES} see below
-REMOTE_CONFIG=${2:?${HELP}} # filename of config e.g. duetbench.config-1run.tar.gz
-FTP_PATH="ftp://shiva.ms.mff.cuni.cz"
-IMAGES="renaissance dacapo scalabench speccpu"
+REMOTE_PATH="https://d3s.mff.cuni.cz/f/temporary/duet/drozdik/"
+REMOTE_CONFIG="${1:?}"
 
 # Get duetbench
 wget ${REMOTE_PATH}/${REMOTE_CONFIG}
