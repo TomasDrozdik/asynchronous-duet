@@ -32,9 +32,9 @@ REMOTE_PATH="https://d3s.mff.cuni.cz/f/temporary/duet/drozdik/"
 REMOTE_CONFIG="${1:?}"
 
 # Get duetbench
-wget ${REMOTE_PATH}/${REMOTE_CONFIG}
-tar -xvf ${REMOTE_CONFIG}
-rm ${REMOTE_CONFIG}
+wget "${REMOTE_PATH}/${REMOTE_CONFIG}" -O "${REMOTE_CONFIG}"
+tar -xvf "${REMOTE_CONFIG}"
+rm "${REMOTE_CONFIG}"
 
 # Install packages
 sudo apt update -y
@@ -43,7 +43,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Load docker images
 for image in ${IMAGES} ; do
-    wget -O - ${REMOTE_PATH}/${image}.tar | podman image load
+    wget -O - "${REMOTE_PATH}/${image}.tar" | podman image load
 done
 
 # Install duetbench
