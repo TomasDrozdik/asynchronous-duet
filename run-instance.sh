@@ -30,6 +30,7 @@ fi
 
 REMOTE_PATH="https://d3s.mff.cuni.cz/f/temporary/duet/drozdik/"
 REMOTE_CONFIG="${1:?}"
+IMAGES="renaissance dacapo scalabench speccpu"
 
 # Get duetbench
 wget "${REMOTE_PATH}/${REMOTE_CONFIG}" -O "${REMOTE_CONFIG}"
