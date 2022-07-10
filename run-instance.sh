@@ -44,7 +44,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Load docker images
 for image in ${IMAGES} ; do
-    wget -O - "${REMOTE_PATH}/${image}.tar" | podman image load
+    wget "${REMOTE_PATH}/${image}.tar" -O "${image}.tar"
+    podman image load <"${image}.tar"
 done
 
 # Install duetbench
