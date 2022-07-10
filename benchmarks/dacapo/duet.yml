@@ -8,9 +8,9 @@ duetbench:
 
   remove_containers: true
 
-  duet_repetitions: 5
-  syncduet_repetitions: 5
-  sequential_repetitions: 5
+  duet_repetitions: 1
+  syncduet_repetitions: 1
+  sequential_repetitions: 1
   schedule: randomized_interleaving_trials
 
   image: dacapo

@@ -19,8 +19,8 @@ duetbench:
   docker_command: docker
 
   remove_containers: true
-  duet_repetitions: 2
-  sequential_repetitions: 2
+  duet_repetitions: 1
+  sequential_repetitions: 1
 
   artifacts:
     date: date
