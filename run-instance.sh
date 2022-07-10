@@ -14,6 +14,20 @@ set -euo pipefail
 
 HELP="run-instance.sh <remote_path> <remote_config>"
 
+USE_NEW_DISK_ON_AMAZON="${USE_NEW_DISK_ON_AMAZON:-true}"
+
+if $USE_NEW_DISK_ON_AMAZON; then
+    sudo parted /dev/nvme1n1 --script mklabel gpt
+    sudo parted -a optimal /dev/nvme1n1 --script mkpart primary ext4 2048 100%
+    sudo mkfs.ext4 /dev/nvme1n1p1
+    sudo mkdir /mnt/duet
+    sudo mount /dev/nvme1n1p1 /mnt/duet/
+    sudo chmod a+w /mnt/duet/
+
+    cd /mnt/duet
+fi
+
+
 # TODO: Replace with appropiate values to execute without arguments
 REMOTE_PATH=${1:?${HELP}} # path with ${REMOTE_CONFIG} and ${image}.tar for image in ${IMAGES} see below
 REMOTE_CONFIG=${2:?${HELP}} # filename of config e.g. duetbench.config-1run.tar.gz
