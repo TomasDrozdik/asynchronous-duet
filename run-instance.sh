@@ -41,7 +41,7 @@ pip install duet.tar.gz
 
 # Run duetbench
 configs=$(find . -name "*duet.yml" | tr "\n" " ")
-outdir="results.drozdikt.$(hostname -f).$(date '+%s')"
+outdir="results.drozdikt.$(hostname -f).$(date '+%Y-%m-%d--%H-%M-%S--%s')"
 log=${outdir}.log
 bash -c "duetbench --outdir ${outdir} --verbose --docker podman -- ${configs} &> ${log}"
 
