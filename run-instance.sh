@@ -12,18 +12,18 @@
 
 set -euo pipefail
 
-HELP="run-instance.sh <path_to_duetbench_archives> <ftp_url>"
+HELP="run-instance.sh <remote_path> <remote_config> <ftp_url>"
 
-# Get duetbench
-# TODO: Replace with path to remote archive
-ARCHIVE_PATH=${1:?${HELP}}
-FTP_PATH=${2:?${HELP}}
+# TODO: Replace with appropiate values to execute without arguments
+REMOTE_PATH=${1:?${HELP}} # path with ${REMOTE_CONFIG} and ${image}.tar for image in ${IMAGES} see below
+REMOTE_CONFIG=${2:?${HELP}} # filename of config e.g. duetbench.config-1run.tar.gz
+FTP_PATH=${3:?${HELP}} # accessible ftp server to upload results to before shutdown
 IMAGES="renaissance dacapo scalabench speccpu"
 
-ARCHIVE="duetbench.tar.gz"
-# TODO(Get archive) wget ${ARCHIVE_PATH} -O ${ARCHIVE}
-tar -xvf duetbench.tar.gz
-rm ${ARCHIVE}
+# Get duetbench
+wget ${REMOTE_PATH}/${REMOTE_CONFIG}
+tar -xvf ${REMOTE_CONFIG}
+rm ${REMOTE_CONFIG}
 
 # Install packages
 sudo apt update -y
@@ -32,11 +32,11 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Load docker images
 for image in ${IMAGES} ; do
-    wget -O - ${ARCHIVE_PATH}/${image}.tar | podman image load
+    wget -O - ${REMOTE_PATH}/${image}.tar | podman image load
 done
 
 # Install duetbench
-cd duetbench
+cd duetbench  # fixed archive name by make-archive.sh
 pip install duet.tar.gz
 
 # Run duetbench
