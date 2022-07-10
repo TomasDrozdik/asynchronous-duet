@@ -39,7 +39,7 @@ if $USE_NEW_DISK_ON_AMAZON; then
     cd /mnt/duet
 fi
 
-
+FTP_PATH="ftp://shiva.ms.mff.cuni.cz"
 REMOTE_PATH="https://d3s.mff.cuni.cz/f/temporary/duet/drozdik/"
 REMOTE_CONFIG="${1:?}"
 IMAGES="renaissance dacapo scalabench speccpu"
