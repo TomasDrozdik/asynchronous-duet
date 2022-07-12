@@ -5,6 +5,7 @@ repos:
     rev: 22.3.0
     hooks:
     -   id: black
+    -   id: black-jupyter
 -   repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
     hooks:
@@ -22,3 +23,11 @@ repos:
     -   id: mixed-line-ending
     -   id: requirements-txt-fixer
     -   id: check-merge-conflict
+-   repo: local
+    hooks:
+    -   id: jupyter-nb-clear-output
+        name: jupyter-nb-clear-output
+        files: \.ipynb$
+        stages: [commit]
+        language: system
+        entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace

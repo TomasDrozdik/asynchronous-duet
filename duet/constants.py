@@ -53,10 +53,23 @@ class ResultsFields:
 
 
 class DerivedFields:
-    pair_time_diff_ns = "pair_time_diff_ns"
+    env = "environment"
+
+    sample = "sample"
+    ci = "ci"
+    ci_width = "ci_width"
+
+    pair_diff = "pair_diff"
+
     pair_speedup = "pair_speedup"
     gmsr = "run_gmean_speedup"
     ggmsr = "bench_gmean_speedup"
+
+    run_time_ns = "run_time_ns"
+    run_time = "run_time"
+    iteration_count = "iteration_count"
+    run_time_per_iteration = "run_time_per_iteration"
+    run_time_speedup = "run_time_speedup"
 
 
 AF = ArtifactFiels()
@@ -69,12 +82,14 @@ NS_PER_S = 1000 * US_PER_S
 
 MS_PER_NS = NS_PER_S / MS_PER_S
 
-ARTIFACT_COL = [AF.date, AF.hostname, AF.lscpu, AF.meminfo, AF.uname]
+ARTIFACT_COL = [AF.date, AF.hostname, AF.lscpu, AF.meminfo, AF.uname, DF.env]
 
 BENCHMARK_ID_COL = [RF.suite, RF.benchmark, RF.type]
 RUN_ID_COL = BENCHMARK_ID_COL + [RF.runid]
 PAIR_ID_COL = RUN_ID_COL + [RF.pair]
 ITER_ID_COL = PAIR_ID_COL + [RF.iteration]
+
+BENCHMARK_ENV_COL = BENCHMARK_ID_COL + [DF.env]
 
 TIME_NS_COL = [RF.start_ns, RF.end_ns]
 TIME_NS_SUFFIX_COL = [RF.start_ns_A, RF.end_ns_A, RF.start_ns_B, RF.end_ns_B]
