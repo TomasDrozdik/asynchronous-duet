@@ -7,9 +7,9 @@ duetbench:
   docker_command: docker
 
   remove_containers: true
-  duet_repetitions: 5
-  syncduet_repetitions: 5
-  sequential_repetitions: 5
+  duet_repetitions: 4
+  syncduet_repetitions: 4
+  sequential_repetitions: 4
   schedule: randomized_interleaving_trials
 
   artifacts:
