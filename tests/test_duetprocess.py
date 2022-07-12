@@ -1,9 +1,16 @@
 import pytest
 import pandas as pd
-from duet.constants import RF, AF
+from duet.constants import RF, AF, DF
 from duet.process import alter_score, compute_overlaps
 
-af = {AF.date: "", AF.hostname: "", AF.lscpu: "", AF.meminfo: "", AF.uname: ""}
+af = {
+    DF.env: "test",
+    AF.date: "",
+    AF.hostname: "",
+    AF.lscpu: "",
+    AF.meminfo: "",
+    AF.uname: "",
+}
 runid_1 = {RF.suite: "xxx", RF.benchmark: "yyy", RF.type: "duet", RF.runid: 0, **af}
 runid_2 = {RF.suite: "aaa", RF.benchmark: "bbb", RF.type: "duet", RF.runid: 0, **af}
 

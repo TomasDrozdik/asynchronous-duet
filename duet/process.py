@@ -17,9 +17,9 @@ from duet.constants import (
     AF,
     ARTIFACT_COL,
     BASE_COL,
+    BENCHMARK_ENV_COL,
     BENCHMARK_ID_COL,
     DF,
-    PAIR_ID_COL,
     RF,
     RUN_ID_COL,
     TIME_D_NS_SUFFIX_COL,
@@ -211,32 +211,59 @@ def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def compute_ci_seqn(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
+def _apply_sampling(df: pd.DataFrame, sample_col: str, statistics, sample_type: str):
+    if sample_type == "run_means":
+        df = (
+            df.groupby(by=ARTIFACT_COL + RUN_ID_COL)
+            .agg(sample=(sample_col, statistics))
+            .reset_index()
+        )
+    elif sample_type == "run_merge":
+        df = df.rename({sample_col: DF.sample}, axis=1)
+    else:
+        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
+    return df
+
+
+def compute_ci_seqn(df: pd.DataFrame, sample_type: str, **kwargs) -> pd.DataFrame:
     df = df[df[RF.type] == "seqn"]
     df = preprocess_data(df)
 
-    if sample_type == "run_means":
-        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, np.mean)).reset_index()
-    elif sample_type == "one_sample":
-        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, "sample")).reset_index()
-        raise NotImplementedError(f"Sample type: {sample_type} does not work yet")
-    elif sample_type == "run_merge":
-        df = df.rename({RF.time_ns: "sample"}, axis=1)
-    else:
-        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
+    df_grand_mean = df.groupby(BENCHMARK_ENV_COL).agg(grand_mean=(RF.time_ns, np.mean))
 
-    return (
-        df.groupby(by=BENCHMARK_ID_COL + [RF.pair])
+    # Pair A/B runs to single row, since we had RMIT these are randomly paired
+    df = df.pivot_table(
+        index=ARTIFACT_COL + RUN_ID_COL + [RF.iteration],
+        columns=RF.pair,
+        values=[RF.time_ns],
+    ).reset_index()
+    df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
+
+    df[DF.pair_diff] = df[RF.time_ns_A] - df[RF.time_ns_B]
+
+    df = _apply_sampling(df, DF.pair_diff, np.mean, sample_type)
+
+    df = (
+        df.groupby(by=BENCHMARK_ENV_COL)
         .apply(
             lambda x: pd.Series(
-                {"ci": bootstrap(data=(x["sample"],), statistic=np.mean)}
+                {DF.ci: bootstrap(data=(x[DF.sample],), statistic=np.mean, **kwargs)}
             )
+            if len(x) >= 2
+            else None
         )
         .reset_index()
     )
+    df = df.dropna()
+
+    df = df.merge(df_grand_mean, on=BENCHMARK_ENV_COL)
+
+    df = expand_confidence_interval(df)
+    df[DF.ci_width] = (df["hi"] - df["lo"]) / df["grand_mean"]
+    return df
 
 
-def compute_ci_syncduet(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
+def compute_ci_syncduet(df: pd.DataFrame, sample_type: str, **kwargs) -> pd.DataFrame:
     df = df[df[RF.type] == "syncduet"]
     df = preprocess_data(df)
 
@@ -252,13 +279,6 @@ def compute_ci_syncduet(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
 
     if sample_type == "run_means":
         df = df.groupby(ARTIFACT_COL + RUN_ID_COL).agg(sample=(DF.pair_speedup, gmean))
-    elif sample_type == "one_sample":
-        df = (
-            df.groupby(by=PAIR_ID_COL)
-            .agg(sample=(DF.pair_speedup, "sample"))
-            .reset_index()
-        )
-        raise NotImplementedError(f"Sample type: {sample_type} does not work yet")
     elif sample_type == "run_merge":
         df = df.rename({DF.pair_speedup: "sample"}, axis=1)
     else:
@@ -267,41 +287,65 @@ def compute_ci_syncduet(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
     # Expected result (internally computed by bootstrap as the sample statistics):
     # df_ggmsr = df_gmsr.groupby(ARTIFACT_COL + BENCHMARK_ID_COL).agg(ggmsr=("gmsr", gmean))
 
-    return (
-        df.groupby(BENCHMARK_ID_COL)
+    df = (
+        df.groupby(BENCHMARK_ENV_COL)
         .apply(
-            lambda x: pd.Series({"ci": bootstrap(data=(x["sample"],), statistic=gmean)})
+            lambda x: pd.Series(
+                {DF.ci: bootstrap(data=(x["sample"],), statistic=gmean, **kwargs)}
+            )
+            if len(x) >= 2
+            else None
         )
         .reset_index()
     )
+    df = df.dropna()
+
+    df = expand_confidence_interval(df)
+    df[DF.ci_width] = df["hi"] - df["lo"]
+    return df
 
 
-def compute_ci_duet_no_overlaps(df: pd.DataFrame, sample_type: str) -> pd.DataFrame:
+def compute_ci_duet_no_overlaps(
+    df: pd.DataFrame, sample_type: str, **kwargs
+) -> pd.DataFrame:
     df = df[df[RF.type] == "duet"]
     df = preprocess_data(df)
 
-    if sample_type == "run_means":
-        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, np.mean)).reset_index()
-    elif sample_type == "one_sample":
-        df = df.groupby(by=PAIR_ID_COL).agg(sample=(RF.time_ns, "sample")).reset_index()
-        raise NotImplementedError(f"Sample type: {sample_type} does not work yet")
-    elif sample_type == "run_merge":
-        df = df.rename({RF.time_ns: "sample"}, axis=1)
-    else:
-        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
+    df_grand_mean = df.groupby(BENCHMARK_ENV_COL).agg(grand_mean=(RF.time_ns, np.mean))
 
-    return (
-        df.groupby(by=BENCHMARK_ID_COL + [RF.pair])
+    # Pair A/B runs to single row, since we had RMIT these are randomly paired
+    df = df.pivot_table(
+        index=ARTIFACT_COL + RUN_ID_COL + [RF.iteration],
+        columns=RF.pair,
+        values=[RF.time_ns],
+    ).reset_index()
+    df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
+
+    df[DF.pair_diff] = df[RF.time_ns_A] - df[RF.time_ns_B]
+
+    df = _apply_sampling(df, DF.pair_diff, np.mean, sample_type)
+
+    df = (
+        df.groupby(by=BENCHMARK_ENV_COL)
         .apply(
             lambda x: pd.Series(
-                {"ci": bootstrap(data=(x["sample"],), statistic=np.mean)}
+                {DF.ci: bootstrap(data=(x[DF.sample],), statistic=np.mean, **kwargs)}
             )
+            if len(x) >= 2
+            else None
         )
         .reset_index()
     )
+    df = df.dropna()
+
+    df = df.merge(df_grand_mean, on=BENCHMARK_ENV_COL)
+
+    df = expand_confidence_interval(df)
+    df[DF.ci_width] = (df["hi"] - df["lo"]) / df["grand_mean"]
+    return df
 
 
-def expand_confidence_interval(df: pd.DataFrame, ci_col="ci") -> pd.DataFrame:
+def expand_confidence_interval(df: pd.DataFrame, ci_col=DF.ci) -> pd.DataFrame:
     df["lo"] = df.apply(lambda x: x[ci_col].confidence_interval[0], axis=1)
     df["hi"] = df.apply(lambda x: x[ci_col].confidence_interval[1], axis=1)
     df["err"] = (df["hi"] - df["lo"]) / 2
@@ -375,6 +419,74 @@ def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
             df[df[RF.pair] != pair],
         ]
     )
+
+
+def run_time_seqn(df: pd.DataFrame):
+    df = (
+        df[df[RF.type] == "seqn"]
+        .groupby(by=ARTIFACT_COL + RUN_ID_COL + [RF.pair])
+        .agg(
+            pair_start=(RF.start_ns, min),
+            pair_end=(RF.end_ns, max),
+            iteration_count=(RF.iteration, len),
+        )
+        .reset_index()
+    )
+    df["pair_duration"] = df["pair_end"] - df["pair_start"]
+    return (
+        df.groupby(by=ARTIFACT_COL + RUN_ID_COL)
+        .agg(
+            run_time_ns=("pair_duration", sum), iteration_count=("iteration_count", sum)
+        )
+        .reset_index()
+    )
+
+
+def run_time_duet(df: pd.DataFrame):
+    df = (
+        df[df[RF.type].isin(["duet", "syncduet"])]
+        .groupby(by=ARTIFACT_COL + RUN_ID_COL)
+        .agg(
+            run_start=(RF.start_ns, min),
+            run_end=(RF.end_ns, max),
+            iteration_count=(RF.iteration, len),
+        )
+        .reset_index()
+    )
+    df[DF.run_time_ns] = df["run_end"] - df["run_start"]
+    df = df.drop(["run_start", "run_end"], axis=1)
+    return df
+
+
+def run_time(df: pd.DataFrame):
+    df = pd.concat(
+        [
+            run_time_seqn(df),
+            run_time_duet(df),
+        ]
+    )
+    df[DF.run_time] = df[DF.run_time_ns].apply(
+        lambda x: pd.Timedelta(value=x, unit="ns").seconds
+    )
+    return df
+
+
+def determine_environment(df: pd.DataFrame) -> pd.DataFrame:
+    conditions = [
+        df[AF.hostname].str.startswith("cirrus"),
+        df[AF.hostname].str.startswith("teaching"),
+        df[AF.hostname].str.startswith("ip-"),
+    ]
+    choices = ["bare-metal", "teaching", "AWS:t3.medium"]
+    df[DF.env] = np.select(conditions, choices, default=None)
+    return df
+
+
+def convert_ns(df: pd.DataFrame) -> pd.DataFrame:
+    df[RF.start] = pd.to_datetime(df[RF.start_ns], unit="ns")
+    df[RF.end] = pd.to_datetime(df[RF.end_ns], unit="ns")
+    df[RF.time] = (df[RF.end] - df[RF.start]).dt.seconds
+    return df
 
 
 def parse_args():
