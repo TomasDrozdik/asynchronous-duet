@@ -83,7 +83,7 @@ def parse_result_file(result_path):
     result_df = None
     try:
         result_df = parser(result_file, logging.getLogger(result_file.filename()))
-        logging.info(f"Parsed: {result_file} with {result_df.shape[0]} iterations")
+        logging.debug(f"Parsed: {result_file} with {result_df.shape[0]} iterations")
     except Exception as e:
         logging.error(f"Parsing: {result_file} failed with exception {e}")
     return result_df
@@ -128,7 +128,7 @@ def parse_artifacts(artifacts_dir: str):
             parsed_artifacts[file] = ARTIFACT_PARSERS[file](contents)
             logging.debug(f"Parsed artifact {file} as {parsed_artifacts[file]}")
         else:
-            logging.info(
+            logging.warning(
                 f"Found artifact {file} but there is no registered parser for it"
             )
     return parsed_artifacts
