@@ -2,6 +2,8 @@ black
 build
 flake8
 ipykernel
+kaleido
+nbformat
 numpy
 pandas
 plotly
