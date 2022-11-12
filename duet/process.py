@@ -22,7 +22,7 @@ from duet.constants import (
     DF,
     RF,
     RUN_ID_COL,
-    TIME_D_NS_SUFFIX_COL,
+    TIME_D_NS_COL,
 )
 from duet.config import ARTIFACTS_DIR, ResultFile
 from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
@@ -145,13 +145,19 @@ def store_results(result_df: pd.DataFrame, output: str, format: SerializeEnum):
 
 
 def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
+    overlap_df = _compute_overlaps(input_df)
+    return _cleanup_overlap_columns(overlap_df)
+
+
+def _compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
     def overlap(interval1, interval2):
         start = max(interval1[0], interval2[0])
         end = min(interval1[1], interval2[1])
-        return True if end - start > 0 else False
+        return end - start > 0
 
-    input_df = input_df[input_df[RF.type] == "duet"]
+    input_df = input_df[input_df[RF.type] == "duet"].reset_index()
 
+    # Find indices of overlapping A/B iterations
     runs = input_df.groupby(by=RUN_ID_COL + ARTIFACT_COL)
     overlap_indices = []
     for name, run in runs:
@@ -183,6 +189,7 @@ def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
             else:
                 iB += 1
 
+    # Join A/B indices together
     df = pd.DataFrame(
         {
             "indexA": [indexA for indexA, _ in overlap_indices],
@@ -191,10 +198,7 @@ def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
     )
     df = df.join(input_df, on="indexA")
     df = df.join(input_df, on="indexB", rsuffix=RF.b_suffix)
-    b_suffix_columns_to_remove = set(
-        [x for x in df.columns if x.endswith(RF.b_suffix)]
-    ) - set(TIME_D_NS_SUFFIX_COL)
-    df = df.drop(list(b_suffix_columns_to_remove), axis=1)
+
     df = df.rename(
         {
             RF.iteration: RF.iteration_A,
@@ -207,7 +211,20 @@ def compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
     df[RF.overlap_start_ns] = df[[RF.start_ns_A, RF.start_ns_B]].max(axis=1)
     df[RF.overlap_end_ns] = df[[RF.end_ns_A, RF.end_ns_B]].min(axis=1)
     df[RF.overlap_time_ns] = df[RF.overlap_end_ns] - df[RF.overlap_start_ns]
+
+    # for col in BENCHMARK_ID_COL:
+    #    assert((df[col] == df[col + RF.b_suffix]).all())
+    # assert((df[RF.overlap_time_ns] >= 0).all())
+    return df
+
+
+def _cleanup_overlap_columns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop(["indexA", "indexB"], axis=1)
+    b_suffix_columns_to_remove = set(
+        [x for x in df.columns if x.endswith(RF.b_suffix)]
+    ) - set([x + RF.b_suffix for x in TIME_D_NS_COL + [RF.iteration]])
+    a_columns_to_remove = [RF.pair]
+    df = df.drop(list(b_suffix_columns_to_remove) + a_columns_to_remove, axis=1)
     return df
 
 
@@ -505,7 +522,7 @@ def parse_args():
         "--csv", action="store_true", help="Serialize DataFrame to CSV (default)"
     )
 
-    subparsers = parser.add_subparsers(title="command", dest="command")
+    subparsers = parser.add_subparsers(title="command", dest="command", required=True)
 
     sub_parse = subparsers.add_parser("parse")
     sub_parse.add_argument("results", type=str, nargs="+", help="Results directories")
