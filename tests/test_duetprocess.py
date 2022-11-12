@@ -1,6 +1,7 @@
-import pytest
 import pandas as pd
-from duet.constants import RF, AF, DF
+import pytest
+
+from duet.constants import AF, DF, RF
 from duet.process import alter_score, compute_overlaps
 
 af = {
@@ -78,7 +79,7 @@ runid_2 = {RF.suite: "aaa", RF.benchmark: "bbb", RF.type: "duet", RF.runid: 0, *
     ]
     # fmt: on
 )
-def test_benchmark_start_instances(data, overlap_count):
+def test_compute_overlaps(data, overlap_count):
     df = pd.DataFrame(data)
     odf = compute_overlaps(df)
     assert odf.shape[0] == overlap_count
