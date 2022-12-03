@@ -1,9 +1,10 @@
-import re
-import pandas as pd
 import json
+import numpy as np
+import pandas as pd
 from pathlib import Path
+import re
 
-from duet.constants import RF, NS_PER_S, MS_PER_NS
+from duet.constants import AF, RF, NS_PER_S, MS_PER_NS
 from duet.config import ResultFile
 
 
@@ -71,6 +72,9 @@ def process_dacapo(result_file: ResultFile, logger):
     )["c"].cumsum()
     df.drop("c", axis=1, inplace=True)
 
+    # Older versions of Dacapo and Scalabench don't have "start_unix" result field and thus cannot
+    # track absolute time of iteration start precicelly only since some point in time e.g. in
+    # AF.date - requires special post processing  - @post_process_dacapo
     if "start_unix" in df.columns:
         df[RF.start_ns] = df["start_unix"] * MS_PER_NS
     else:
@@ -78,6 +82,25 @@ def process_dacapo(result_file: ResultFile, logger):
 
     df[RF.end_ns] = df[RF.start_ns] + df[RF.time_ns]
     return df
+
+
+def post_process_dacapo(df: pd.DataFrame, logger) -> pd.DataFrame:
+    ts_2000 = pd.Timestamp("2000-01-01").to_datetime64().astype(np.float64)
+    filter_old_dacapo = df[RF.suite].isin(["scalabench", "dacapo"]) & (
+        df[RF.start_ns] < ts_2000
+    )
+    if filter_old_dacapo.any():
+        logger.warning("Detected old Dacapo+Scalabench suite, recomputing timestamps")
+    df_rest = df[~filter_old_dacapo]
+    df_change = df[filter_old_dacapo]
+    epoch_start = "epoch_start_ns"
+    df_change[epoch_start] = pd.to_datetime(df_change[AF.date]).values.astype(
+        np.float64
+    )
+    df_change[RF.start_ns] = df_change[RF.start_ns] + df_change[epoch_start]
+    df_change[RF.end_ns] = df_change[RF.end_ns] + df_change[epoch_start]
+    df_change.drop(epoch_start, axis=1, inplace=True)
+    return pd.concat([df_rest, df_change])
 
 
 def process_spec(result_file: ResultFile, logger):

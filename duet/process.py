@@ -25,7 +25,12 @@ from duet.constants import (
     TIME_D_NS_COL,
 )
 from duet.config import ARTIFACTS_DIR, ResultFile
-from duet.parsers_benchmark import process_renaissance, process_dacapo, process_spec
+from duet.parsers_benchmark import (
+    post_process_dacapo,
+    process_renaissance,
+    process_dacapo,
+    process_spec,
+)
 from duet.parsers_artifact import (
     parse_lscpu,
     parse_meminfo,
@@ -64,6 +69,9 @@ def parse_result_files(results: List[str]):
     for result_file in results:
         try:
             df = pd.concat([df, process_result(result_file)])
+            # Check if there are old Dacapo/Scalabench results
+            df = post_process_dacapo(df, logger=logging)
+            logging.info(f"Finished parsing {result_file} with {df.shape[0]} records")
         except Exception as e:
             logging.error(f"Failed to parse {result_file} with: {e}")
     return df
@@ -291,6 +299,7 @@ def compute_ci_syncduet(df: pd.DataFrame, sample_type: str, **kwargs) -> pd.Data
         values=[RF.time_ns],
     ).reset_index()
     df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
+    df = df.dropna(subset=[RF.time_ns_A, RF.time_ns_B])
 
     df[DF.pair_speedup] = df[RF.time_ns_A] / df[RF.time_ns_B]
 
