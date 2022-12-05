@@ -99,7 +99,9 @@ TIME_D_NS_SUFFIX_COL = TIME_NS_SUFFIX_COL + [RF.time_ns_A, RF.time_ns_B]
 BASE_COL = ITER_ID_COL + TIME_D_NS_COL
 
 TIME_COL = [RF.start, RF.end]
+TIME_SUFFIX_COL = [RF.start_A, RF.end_A, RF.start_B, RF.end_B]
 TIME_D_COL = TIME_COL + [RF.time]
+TIME_D_SUFFIX_COL = TIME_SUFFIX_COL + [RF.time_A, RF.time_B]
 
 OVERLAP_NS_COL = [RF.overlap_start_ns, RF.overlap_end_ns]
 OVERLAP_D_NS_COL = OVERLAP_NS_COL + [RF.overlap_time_ns]

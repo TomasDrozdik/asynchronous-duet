@@ -18,7 +18,6 @@ from duet.constants import (
     ARTIFACT_COL,
     BASE_COL,
     BENCHMARK_ENV_COL,
-    BENCHMARK_ID_COL,
     DF,
     RF,
     RUN_ID_COL,
@@ -168,8 +167,7 @@ def _compute_overlaps(input_df: pd.DataFrame) -> pd.DataFrame:
     # Find indices of overlapping A/B iterations
     runs = input_df.groupby(by=RUN_ID_COL + ARTIFACT_COL)
     overlap_indices = []
-    for name, run in runs:
-        logging.debug(f"process run group {name}")
+    for _, run in runs:
         dfA = run[run[RF.pair] == "A"]
         dfB = run[run[RF.pair] == "B"]
         dfA = dfA.sort_values(by=[RF.start_ns])
@@ -250,24 +248,42 @@ def _apply_sampling(df: pd.DataFrame, sample_col: str, statistics, sample_type: 
     return df
 
 
-def compute_ci_seqn(df: pd.DataFrame, sample_type: str, **kwargs) -> pd.DataFrame:
-    df = df[df[RF.type] == "seqn"]
-    df = preprocess_data(df)
-
-    df_grand_mean = df.groupby(BENCHMARK_ENV_COL).agg(grand_mean=(RF.time_ns, np.mean))
-
-    # Pair A/B runs to single row, since we had RMIT these are randomly paired
+def pair_iterations_sequentially(df: pd.DataFrame) -> pd.DataFrame:
+    """Pair runs on matching indexes together.
+    Seqn runs are matched to random matching run because of RMIT. Syncduet runs are matched properly
+    as their iterations are synced. Duet runs are matched per iteration but they might not overlap.
+    """
     df = df.pivot_table(
         index=ARTIFACT_COL + RUN_ID_COL + [RF.iteration],
         columns=RF.pair,
         values=[RF.time_ns],
     ).reset_index()
     df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
+    # Drop rows with Nan as these don't have matching iteration result because of a timeout
+    df = df.dropna(subset=[RF.time_ns_A, RF.time_ns_B])
+    return df
 
+
+def pair_overlapping_duet_iterations(df: pd.DataFrame, overlap: float) -> pd.DataFrame:
+    """Pair duet iterations only if iteration_time_A * overlap < overlap_time_AB and iteration_time_B * overlap < overlap_time_AB."""
+    assert overlap > 0 and overlap <= 1
+    df_overlaps = compute_overlaps(df)
+    return preprocess_overlaps(df_overlaps, p=overlap)
+
+
+def compute_ci_pair_difference(
+    df: pd.DataFrame, sample_type: str, pair_function, **kwargs
+) -> pd.DataFrame:
+    df = preprocess_data(df)
+
+    # Compute grand mean so that we can later compute relative CI width
+    df_grand_mean = df.groupby(BENCHMARK_ENV_COL).agg(grand_mean=(RF.time_ns, np.mean))
+
+    df = pair_function(df)
     df[DF.pair_diff] = df[RF.time_ns_A] - df[RF.time_ns_B]
 
+    # Compute CI with given sampling
     df = _apply_sampling(df, DF.pair_diff, np.mean, sample_type)
-
     df = (
         df.groupby(by=BENCHMARK_ENV_COL)
         .apply(
@@ -280,39 +296,24 @@ def compute_ci_seqn(df: pd.DataFrame, sample_type: str, **kwargs) -> pd.DataFram
         .reset_index()
     )
     df = df.dropna()
+    df = expand_confidence_interval(df)
 
     df = df.merge(df_grand_mean, on=BENCHMARK_ENV_COL)
-
-    df = expand_confidence_interval(df)
     df[DF.ci_width] = (df["hi"] - df["lo"]) / df["grand_mean"]
     return df
 
 
-def compute_ci_syncduet(df: pd.DataFrame, sample_type: str, **kwargs) -> pd.DataFrame:
-    df = df[df[RF.type] == "syncduet"]
+def compute_ci_pair_speedup(
+    df: pd.DataFrame, sample_type: str, **kwargs
+) -> pd.DataFrame:
     df = preprocess_data(df)
-
-    # Pair A/B runs to single row
-    df = df.pivot_table(
-        index=ARTIFACT_COL + RUN_ID_COL + [RF.iteration],
-        columns=RF.pair,
-        values=[RF.time_ns],
-    ).reset_index()
-    df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
-    df = df.dropna(subset=[RF.time_ns_A, RF.time_ns_B])
-
+    df = pair_iterations_sequentially(df)
     df[DF.pair_speedup] = df[RF.time_ns_A] / df[RF.time_ns_B]
 
-    if sample_type == "run_means":
-        df = df.groupby(ARTIFACT_COL + RUN_ID_COL).agg(sample=(DF.pair_speedup, gmean))
-    elif sample_type == "run_merge":
-        df = df.rename({DF.pair_speedup: "sample"}, axis=1)
-    else:
-        raise NotImplementedError(f"Unknown sample_type: {sample_type}")
-
+    # Compute CI with given sampling
     # Expected result (internally computed by bootstrap as the sample statistics):
     # df_ggmsr = df_gmsr.groupby(ARTIFACT_COL + BENCHMARK_ID_COL).agg(ggmsr=("gmsr", gmean))
-
+    df = _apply_sampling(df, DF.pair_speedup, np.mean, sample_type)
     df = (
         df.groupby(BENCHMARK_ENV_COL)
         .apply(
@@ -400,19 +401,13 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([df_java, df_rest])
 
 
-def preprocess_overlaps(df: pd.DataFrame, p=0.1) -> pd.DataFrame:
+def preprocess_overlaps(df_overlaps: pd.DataFrame, p=0.1) -> pd.DataFrame:
     """Filter out small overlaps i.e. <10% of mean run time"""
     assert 0 < p and p < 1
-
-    mean_time_col = f"{RF.time_ns}_mean"
-    df_mean_time = df.groupby(BENCHMARK_ID_COL).apply(
-        lambda x: pd.Series({mean_time_col: np.mean(x[RF.time_ns_A] + x[RF.time_ns_B])})
-    )
-
-    df = df.merge(df_mean_time, on=BENCHMARK_ID_COL)
-    df = df[df[RF.overlap_time_ns] >= p * df[mean_time_col]]
-    df = df.drop(mean_time_col, axis=1)
-    return df
+    return df_overlaps[
+        (df_overlaps[RF.time_ns_A] * p < df_overlaps[RF.overlap_time_ns])
+        & (df_overlaps[RF.time_ns_B] * p < df_overlaps[RF.overlap_time_ns])
+    ]
 
 
 def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
@@ -512,6 +507,21 @@ def convert_ns(df: pd.DataFrame) -> pd.DataFrame:
     df[RF.start] = pd.to_datetime(df[RF.start_ns], unit="ns")
     df[RF.end] = pd.to_datetime(df[RF.end_ns], unit="ns")
     df[RF.time] = (df[RF.end] - df[RF.start]).dt.seconds
+    return df
+
+
+def convert_ns_overlaps(df: pd.DataFrame) -> pd.DataFrame:
+    df[RF.overlap_start] = pd.to_datetime(df[RF.overlap_start_ns], unit="ns")
+    df[RF.overlap_end] = pd.to_datetime(df[RF.overlap_end_ns], unit="ns")
+    df[RF.overlap_time] = (df[RF.overlap_end] - df[RF.overlap_start]).dt.seconds
+
+    df[RF.start_A] = pd.to_datetime(df[RF.start_ns_A], unit="ns")
+    df[RF.end_A] = pd.to_datetime(df[RF.end_ns_A], unit="ns")
+    df[RF.time_A] = (df[RF.end_A] - df[RF.start_A]).dt.seconds
+
+    df[RF.start_B] = pd.to_datetime(df[RF.start_ns_B], unit="ns")
+    df[RF.end_B] = pd.to_datetime(df[RF.end_ns_B], unit="ns")
+    df[RF.time_B] = (df[RF.end_B] - df[RF.start_B]).dt.seconds
     return df
 
 
