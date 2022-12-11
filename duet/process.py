@@ -9,6 +9,7 @@ import pandas as pd
 from scipy.stats import (
     bootstrap,
     gmean,
+    mannwhitneyu,
 )
 import traceback
 from typing import List
@@ -274,8 +275,6 @@ def pair_overlapping_duet_iterations(df: pd.DataFrame, overlap: float) -> pd.Dat
 def compute_ci_pair_difference(
     df: pd.DataFrame, sample_type: str, pair_function, **kwargs
 ) -> pd.DataFrame:
-    df = preprocess_data(df)
-
     # Compute grand mean so that we can later compute relative CI width
     df_grand_mean = df.groupby(BENCHMARK_ENV_COL).agg(grand_mean=(RF.time_ns, np.mean))
 
@@ -306,7 +305,6 @@ def compute_ci_pair_difference(
 def compute_ci_pair_speedup(
     df: pd.DataFrame, sample_type: str, **kwargs
 ) -> pd.DataFrame:
-    df = preprocess_data(df)
     df = pair_iterations_sequentially(df)
     df[DF.pair_speedup] = df[RF.time_ns_A] / df[RF.time_ns_B]
 
@@ -332,43 +330,80 @@ def compute_ci_pair_speedup(
     return df
 
 
-def compute_ci_duet_no_overlaps(
-    df: pd.DataFrame, sample_type: str, **kwargs
-) -> pd.DataFrame:
-    df = df[df[RF.type] == "duet"]
-    df = preprocess_data(df)
-
-    df_grand_mean = df.groupby(BENCHMARK_ENV_COL).agg(grand_mean=(RF.time_ns, np.mean))
-
-    # Pair A/B runs to single row, since we had RMIT these are randomly paired
-    df = df.pivot_table(
-        index=ARTIFACT_COL + RUN_ID_COL + [RF.iteration],
-        columns=RF.pair,
-        values=[RF.time_ns],
-    ).reset_index()
-    df.columns = [f"{i}_{j}" if j else i for i, j in df.columns]
-
-    df[DF.pair_diff] = df[RF.time_ns_A] - df[RF.time_ns_B]
-
-    df = _apply_sampling(df, DF.pair_diff, np.mean, sample_type)
-
-    df = (
-        df.groupby(by=BENCHMARK_ENV_COL)
-        .apply(
-            lambda x: pd.Series(
-                {DF.ci: bootstrap(data=(x[DF.sample],), statistic=np.mean, **kwargs)}
-            )
-            if len(x) >= 2
-            else None
-        )
-        .reset_index()
+def compute_ci(df_input: pd.DataFrame, overlap_rates=[0.5]) -> pd.DataFrame:
+    dfs = []
+    df = compute_ci_pair_difference(
+        df_input[df_input[RF.type] != "duet"],
+        sample_type="run_means",
+        pair_function=pair_iterations_sequentially,
     )
-    df = df.dropna()
+    df[DF.overlap_rate] = None
+    dfs.append(df)
 
-    df = df.merge(df_grand_mean, on=BENCHMARK_ENV_COL)
+    for overlap_rate in overlap_rates:
+        df = compute_ci_pair_difference(
+            df_input[df_input[RF.type] == "duet"],
+            sample_type="run_means",
+            pair_function=lambda x: pair_overlapping_duet_iterations(x, overlap_rate),
+        )
+        df[DF.overlap_rate] = overlap_rate
+        dfs.append(df)
 
-    df = expand_confidence_interval(df)
-    df[DF.ci_width] = (df["hi"] - df["lo"]) / df["grand_mean"]
+    return pd.concat(dfs).reset_index()
+
+
+def arbiter_ci_contains_zero(df_ci: pd.DataFrame) -> pd.DataFrame:
+    """Decide if A/B pairs differ based on difference CI encompassing 0"""
+    df_ci[DF.err_ci] = 0
+    mask = np.absolute(df_ci["mid"]) <= df_ci["err"]
+    df_ci.loc[~mask, DF.err_ci] = df_ci["mid"] - df_ci["err"]
+    df_ci[DF.match_ci] = df_ci[DF.err_ci] == 0
+    return df_ci
+
+
+def arbiter_utest(df: pd.DataFrame, pvalue=0.05, **kwargs) -> pd.DataFrame:
+    """Decide if A/B pairs differ based on Mann-Whitney u-test"""
+    df_data = []
+    groups = df.groupby(BENCHMARK_ENV_COL)
+    for group, values in groups:
+        values_A = values[values[RF.pair] == "A"]
+        values_B = values[values[RF.pair] == "B"]
+        utest = mannwhitneyu(x=values_A[RF.time_ns], y=values_B[RF.time_ns])
+        df_data.append(group + (utest.statistic, utest.pvalue))
+    df_pred = pd.DataFrame(
+        df_data, columns=BENCHMARK_ENV_COL + [DF.u_test_statistics, DF.u_test_pvalue]
+    )
+    df_pred[DF.match_utest] = df_pred[DF.u_test_pvalue] > pvalue
+    return df_pred
+
+
+def arbiter(df_prep: pd.DataFrame, df_ci: pd.DataFrame) -> pd.DataFrame:
+    df_pred_ci = arbiter_ci_contains_zero(df_ci)
+    df_pred_utest = arbiter_utest(df_prep)
+    return df_pred_ci.merge(df_pred_utest, validate="1:1")
+
+
+def group_predictions(df: pd.DataFrame, ci=True, utest=True) -> pd.DataFrame:
+    ci_kwargs = {
+        "total_count_ci": (DF.match_ci, "count"),
+        "match_ci": (DF.match_ci, "sum"),
+        "err_ci": (DF.err_ci, "sum"),
+    }
+    utest_kwargs = {
+        "total_count_utest": (DF.match_utest, "count"),
+        "match_utest": (DF.match_utest, "sum"),
+    }
+    kwargs = {}
+    if ci:
+        kwargs = {**kwargs, **ci_kwargs}
+    if utest:
+        kwargs = {**kwargs, **utest_kwargs}
+
+    df = df.groupby(by=[DF.env, RF.suite, RF.type]).agg(**kwargs).reset_index()
+    if ci:
+        df[DF.match_ratio_ci] = df["match_ci"] / df["total_count_ci"]
+    if utest:
+        df[DF.match_ratio_utest] = df["match_utest"] / df["total_count_utest"]
     return df
 
 
@@ -410,8 +445,8 @@ def preprocess_overlaps(df_overlaps: pd.DataFrame, p=0.1) -> pd.DataFrame:
     ]
 
 
-def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
-    """Alter - speedup/slowdown score of results by given rate.
+def alter_score(df: pd.DataFrame, slowdown: float, pair="B") -> pd.DataFrame:
+    """Alter - slowdown score of results by given rate.
 
     For seqn/syncduet types simply speeding up the time_ns is sufficient,
     for duet it needs to re-compute start/end timestamps to somewhat keep
@@ -422,8 +457,13 @@ def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
     """
 
     def recompute_timestamps(df: pd.DataFrame):
+        df[RF.time_ns] = (1 + slowdown) * df[RF.time_ns]
+        df[RF.end_ns] = df[RF.start_ns] + df[RF.time_ns]
+        return df
+
+    def recompute_timestamps_duet(df: pd.DataFrame):
         delta_time = "delta_time"
-        df[delta_time] = rate * df[RF.time_ns]
+        df[delta_time] = slowdown * df[RF.time_ns]
         df[delta_time] = df[delta_time].cumsum()
         df[RF.start_ns] += df[delta_time].shift(1, fill_value=0)
         df[RF.end_ns] += df[delta_time]
@@ -432,12 +472,17 @@ def alter_score(df: pd.DataFrame, rate: float, pair="B") -> pd.DataFrame:
         df = df.drop(delta_time, axis=1)
         return df
 
+    duet_mask = df[RF.type] == "duet"
+    alter_pair_mask = df[RF.pair] == pair
     return pd.concat(
         [
-            df[df[RF.pair] == pair]
-            .groupby(by=ARTIFACT_COL + RUN_ID_COL)
+            df[alter_pair_mask & duet_mask]
+            .groupby(by=ARTIFACT_COL + RUN_ID_COL, group_keys=False)
+            .apply(recompute_timestamps_duet),
+            df[alter_pair_mask & ~duet_mask]
+            .groupby(by=ARTIFACT_COL + RUN_ID_COL, group_keys=False)
             .apply(recompute_timestamps),
-            df[df[RF.pair] != pair],
+            df[~alter_pair_mask],
         ]
     )
 
