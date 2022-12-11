@@ -18,9 +18,9 @@ class StopExecution(Exception):
 def load_raw():
     df = pd.concat(
         [
-            pd.read_csv("../results/results.aws.csv"),
             pd.read_csv("../results/results.bare-metal.csv"),
-            pd.read_csv("../results/results.dacaposcala.csv"),
+            pd.read_csv("../results/amazon-mid-july.csv"),
+            pd.read_csv("../results/results.teaching.csv"),
         ]
     )
     df = convert_ns(df)

@@ -59,9 +59,10 @@ class DerivedFields:
     ci = "ci"
     ci_width = "ci_width"
 
+    overlap_rate = "overlap_rate"
     pair_diff = "pair_diff"
-
     pair_speedup = "pair_speedup"
+
     gmsr = "run_gmean_speedup"
     ggmsr = "bench_gmean_speedup"
 
@@ -70,6 +71,17 @@ class DerivedFields:
     iteration_count = "iteration_count"
     run_time_per_iteration = "run_time_per_iteration"
     run_time_speedup = "run_time_speedup"
+
+    u_test_statistics = "u_test_statistics"
+    u_test_pvalue = "u_test_pvalue"
+
+    err_ci = "err_ci"
+    match_ci = "match_ci"
+    match_utest = "match_utest"
+    match_ratio_ci = "match_ci_%"
+    match_ratio_utest = "match_utest_%"
+
+    slowdown = "slowdown"
 
 
 AF = ArtifactFiels()
