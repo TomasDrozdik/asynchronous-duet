@@ -368,8 +368,11 @@ def arbiter_utest(df: pd.DataFrame, pvalue=0.05, **kwargs) -> pd.DataFrame:
     for group, values in groups:
         values_A = values[values[RF.pair] == "A"]
         values_B = values[values[RF.pair] == "B"]
-        utest = mannwhitneyu(x=values_A[RF.time_ns], y=values_B[RF.time_ns])
-        df_data.append(group + (utest.statistic, utest.pvalue))
+        if values_A[RF.time_ns].count() > 0 and values_B[RF.time_ns].count() > 0:
+            utest = mannwhitneyu(x=values_A[RF.time_ns], y=values_B[RF.time_ns])
+            df_data.append(group + (utest.statistic, utest.pvalue))
+        else:
+            print(f"Utest failed for: {group}")
     df_pred = pd.DataFrame(
         df_data, columns=BENCHMARK_ENV_COL + [DF.u_test_statistics, DF.u_test_pvalue]
     )
