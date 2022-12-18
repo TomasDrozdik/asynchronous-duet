@@ -42,8 +42,8 @@ def save_fig_facet_col_env(
 
     xaxis_annotation = go.layout.Annotation(
         x=0.5,
-        y=-0.15,
-        # font=dict(size=14),
+        y=-0.17,
+        font=dict(size=14),
         showarrow=False,
         text=xaxis_title,
         textangle=0,
@@ -53,7 +53,7 @@ def save_fig_facet_col_env(
     yaxis_annotation = go.layout.Annotation(
         x=-0.1,
         y=0.5,
-        # font=dict(size=14),
+        font=dict(size=14),
         showarrow=False,
         text=yaxis_title,
         textangle=-90,
@@ -64,6 +64,8 @@ def save_fig_facet_col_env(
         legend_title=legend_title,
         legend=dict(orientation="h", yanchor="top", xanchor="center", y=1.2, x=0.5),
         annotations=list(fig.layout.annotations) + [xaxis_annotation, yaxis_annotation],
+        height=380,
+        width=720,
         **kwargs
     )
     fig.write_image(filename)
