@@ -330,7 +330,7 @@ def compute_ci_pair_speedup(
     return df
 
 
-def compute_ci(df_input: pd.DataFrame, overlap_rates=[0.5]) -> pd.DataFrame:
+def compute_ci(df_input: pd.DataFrame, overlap_rates=[0.4]) -> pd.DataFrame:
     dfs = []
     df = compute_ci_pair_difference(
         df_input[df_input[RF.type] != "duet"],
