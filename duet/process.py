@@ -299,6 +299,7 @@ def compute_ci_pair_difference(
 
     df = df.merge(df_grand_mean, on=BENCHMARK_ENV_COL)
     df[DF.ci_width] = (df["hi"] - df["lo"]) / df["grand_mean"]
+    df[DF.ci_width_absolute] = df["hi"] - df["lo"]
     return df
 
 
