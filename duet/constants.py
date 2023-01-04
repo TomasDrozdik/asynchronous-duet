@@ -58,6 +58,7 @@ class DerivedFields:
     sample = "sample"
     ci = "ci"
     ci_width = "ci_width"
+    ci_width_absolute = "ci_width_absolute"
 
     overlap_rate = "overlap_rate"
     pair_diff = "pair_diff"
