@@ -59,7 +59,7 @@ class DerivedFields:
     ci = "ci"
     ci_width = "ci_width"
 
-    overlap_rate = "overlap_rate"
+    overlap_rate = "minumum_overlap_ratio"
     pair_diff = "pair_diff"
     pair_speedup = "pair_speedup"
 

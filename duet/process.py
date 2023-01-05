@@ -546,7 +546,7 @@ def determine_environment(df: pd.DataFrame) -> pd.DataFrame:
         df[AF.hostname].str.startswith("teaching"),
         df[AF.hostname].str.startswith("ip-"),
     ]
-    choices = ["bare-metal", "teaching", "AWS:t3.medium"]
+    choices = ["bare-metal", "shared-vm", "AWS t3.medium"]
     df[DF.env] = np.select(conditions, choices, default=None)
     return df
 
