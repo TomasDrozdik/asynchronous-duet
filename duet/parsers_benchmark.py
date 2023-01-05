@@ -39,18 +39,6 @@ def process_renaissance(result_file: ResultFile, logger) -> pd.DataFrame:
                     "epoch_start_ms": vm_start_ms,
                     RF.time_ns: iteration_data["duration_ns"],
                     "uptime_ns": iteration_data["uptime_ns"],
-                    # TODO: Figure out what to put in the following fields
-                    # "jdk": results_json["environment"]["jre"]["name"],
-                    # "jdk_version": results_json["environment"]["jre"]["version"],
-                    # "machine": # parse artifacts
-                    # "provider": # parse artifacts
-                    # "wallclock_start_ms": vm_start_ms,
-                    # "time": results_json["environment"]["vm"]["start_iso"],
-                    # "kind": None,
-                    # "total_ms": None,
-                    # "process_cpu_time_ns": None,
-                    # "compilation_time_ms": None,
-                    # "compilation_total_ms": results_json["environment"]["vm"]["compiler"]["compilation_time_ms"],
                 }
             )
 
