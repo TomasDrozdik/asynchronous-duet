@@ -27,3 +27,10 @@ duetbench --verbose --outdir results.test --docker <podman|docker> ./benchmarks/
 # Run actual runs see [Runs iterations and timeouts](#runs-iterations-and-timeouts)
 duetbench --verbose --outdir results --docker <podman|docker> ./benchmarks/renaissance/duet.yml ./benchmarks/dacapo/duet.yml ./benchmarks/scalabench/duet.yml ./benchmarks/speccpu/duet.yml 2>&1 | tee results.log
 ```
+
+## View results
+Jupyter notebooks for each research question have been pre-rendered in the repository to enable easy access.
+
+For those who want to rerun and experiment with them, we also provide output of `duetprocess` for our measurements in `results.zip`.
+Unzip this archive, that creates `results` directory that is referenced from [./notebooks/common.py](./notebooks/common.py) script.
+Then you can rerun Jupyter notebooks.
